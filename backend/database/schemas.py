@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class TodoSchema(BaseModel):
@@ -11,3 +12,13 @@ class TodoSchema(BaseModel):
     isCompleted: bool
     dueDate: datetime
     createdAt: datetime
+
+
+class UserSchema(BaseModel):
+    userId: str
+    email: EmailStr
+    passwordHash: str
+    refreshToken: Optional[str]
+    createdAt: datetime
+    deletedAt: Optional[datetime]
+    lastLogIn: Optional[datetime]
