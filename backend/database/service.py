@@ -4,12 +4,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import EmailStr
 from pymongo.errors import PyMongoError
 
-from .schemas import UserSchema
+from .schemas import UserSchema, PendingUserSchema
 from ..database.schemas import TodoSchema
 from ..utils.sv_logger import sv_logger
 
 TODO_COLL = "todos"
 USER_COLL = "users"
+PEND_USER = "pending_users"
 
 async def create_todo(todo: TodoSchema, db: AsyncIOMotorDatabase):
     try:
@@ -21,6 +22,14 @@ async def create_todo(todo: TodoSchema, db: AsyncIOMotorDatabase):
 
 async def get_todos(limit: int, sort_by: tuple[str, int], db: AsyncIOMotorDatabase) -> list[TodoSchema]:
     todos = await db.get_collection(TODO_COLL).find({}).limit(limit).sort(*sort_by).to_list(length=limit)
+    return [TodoSchema(**todo) for todo in todos]
+
+async def get_active_todos(limit: int, db: AsyncIOMotorDatabase) -> list[TodoSchema]:
+    todos = await db.get_collection(TODO_COLL).find({"isCompleted": False}).limit(limit).to_list(length=limit)
+    return [TodoSchema(**todo) for todo in todos]
+
+async def get_completed_todos(limit: int, db: AsyncIOMotorDatabase) -> list[TodoSchema]:
+    todos = await db.get_collection(TODO_COLL).find({"isCompleted": True}).limit(limit).to_list(length=limit)
     return [TodoSchema(**todo) for todo in todos]
 
 async def get_todo(todo_id: str, db: AsyncIOMotorDatabase) -> TodoSchema:
@@ -71,4 +80,19 @@ async def get_user_by_rt_and_user_id(user_id: str, refresh_token: str, db: Async
     user = await db.get_collection(USER_COLL).find_one({"refreshToken": refresh_token, "userId": user_id})
     if user:
         return UserSchema(**user)
+    return None
+
+async def add_temp_user(pend_user_schema: PendingUserSchema, db: AsyncIOMotorDatabase):
+    try:
+        await db.get_collection(PEND_USER).insert_one(pend_user_schema.model_dump())
+    except PyMongoError as pe:
+        sv_logger.error(f"Error while inserting into DB: {pe}")
+
+async def remove_temp_user(email: EmailStr, db: AsyncIOMotorDatabase):
+    await db.get_collection(PEND_USER).delete_one({"email": email})
+
+async def get_temp_user(email: EmailStr, db: AsyncIOMotorDatabase) -> UserSchema | None:
+    result = await db.get_collection(PEND_USER).find_one({"email": email})
+    if result:
+        return PendingUserSchema(**result)
     return None

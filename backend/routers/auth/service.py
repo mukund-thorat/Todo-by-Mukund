@@ -14,8 +14,8 @@ from pydantic import EmailStr
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 
 from backend.database.core import get_db
-from backend.database.crud import add_new_user, get_user_by_email, get_user_by_rt_and_user_id
-from backend.database.schemas import UserSchema
+from backend.database.service import add_new_user, get_user_by_email, get_user_by_rt_and_user_id, add_temp_user
+from backend.database.schemas import UserSchema, PendingUserSchema
 from backend.routers.auth.model import UserCredentials, SignUpModel
 from backend.utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
 
@@ -23,13 +23,14 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-async def create_user(sign_up_model: SignUpModel, db: AsyncIOMotorDatabase):
+async def create_user(pend_user_schema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
     user_schema = UserSchema(
         userId=str(uuid.uuid4()),
-        firstName=sign_up_model.firstName,
-        lastName=sign_up_model.lastName,
-        email=sign_up_model.email,
-        passwordHash=bcrypt_context.hash(sign_up_model.password),
+        firstName=pend_user_schema.firstName,
+        lastName=pend_user_schema.lastName,
+        email=pend_user_schema.email,
+        avatar=avatar,
+        passwordHash=pend_user_schema.passwordHash,
         refreshToken=None,
         createdAt=datetime.now(),
         deletedAt=None,
@@ -62,7 +63,7 @@ def create_refresh_token(user_id: str):
 
     return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
 
-async def get_current_user(token: str = Depends(oauth2_bearer)) -> dict:
+async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     try:
         payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
         email: str = payload.get("email")
@@ -71,14 +72,18 @@ async def get_current_user(token: str = Depends(oauth2_bearer)) -> dict:
         if email is None or user_id is None:
             raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid jwt encoded data", headers={"WWW-Authenticate": "Bearer"})
 
-        return {"email": email, "userId": user_id}
+        user = await get_user_by_email(email, db)
+        if not user:
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User does not exist")
+
+        return {"email": email, "userId": user.userId}
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Could not validate credentials.")
 
-async def get_current_user_from_cookie(refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
     if not refresh_token:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -99,3 +104,13 @@ async def get_current_user_from_cookie(refresh_token: str = Cookie(None), db: As
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Session expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid session")
+
+async def store_temp_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
+    pend_schema = PendingUserSchema(
+        firstName=signup_data.firstName,
+        lastName=signup_data.lastName,
+        email=signup_data.email,
+        passwordHash=bcrypt_context.hash(signup_data.password),
+    )
+
+    await add_temp_user(pend_schema, db=db)

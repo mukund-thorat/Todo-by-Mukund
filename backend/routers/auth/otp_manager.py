@@ -1,3 +1,4 @@
+import os
 import random
 import smtplib
 from datetime import datetime, timedelta
@@ -6,11 +7,12 @@ from smtplib import SMTPException
 
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import EmailStr
-from starlette.status import HTTP_406_NOT_ACCEPTABLE
+from starlette.status import HTTP_406_NOT_ACCEPTABLE, HTTP_404_NOT_FOUND, HTTP_408_REQUEST_TIMEOUT, \
+    HTTP_401_UNAUTHORIZED
 
-from backend.routers.auth.model import SignUpModel
-from backend.routers.auth.service import create_user
+from backend.database.service import get_temp_user, remove_temp_user
+from backend.database.schemas import PendingUserSchema
+from backend.routers.auth.service import create_user, create_access_token
 
 
 class OTPManager:
@@ -19,27 +21,26 @@ class OTPManager:
     active_otp = {}
 
     def __init__(self, ):
-        self.smtp_email = "api.gaku@gmail.com"
-        self.smtp_password = "ehhj zlot cpil gzyg"
+        self.smtp_email = os.getenv("SMTP_EMAIL")
+        self.smtp_password = os.getenv("SMTP_PASS")
 
-    def __generate_otp(self, signup_model: SignUpModel) -> str:
+    def __generate_otp(self, email: str) -> str:
         otp = "".join([str(random.randint(0, 9)) for _ in range(self.OTP_LENGTH)])
 
-        self.active_otp[signup_model.email] = {
+        self.active_otp[email] = {
             "otp": otp,
             "expires": datetime.now() + timedelta(minutes=self.EXPIRY_MINUTES),
-            "data": signup_model.model_dump()
         }
 
         return otp
 
-    def send_otp(self, signup_model: SignUpModel) -> bool:
-        otp = self.__generate_otp(signup_model)
+    def send_otp(self, email: str) -> bool:
+        otp = self.__generate_otp(email)
 
         msg = MIMEText(f"Your OTP is: {otp}\nThis OTP expires in {self.EXPIRY_MINUTES} minutes.")
-        msg["Subject"] = "Your Gaku API OTP Code"
+        msg["Subject"] = "OTP - Todo By Mukund"
         msg["From"] = self.smtp_email
-        msg["To"] = signup_model.email
+        msg["To"] = email
 
         try:
             server = smtplib.SMTP("smtp.gmail.com", 587)
@@ -52,23 +53,32 @@ class OTPManager:
         except SMTPException:
             return False
 
-    async def verify_otp(self, email: EmailStr, otp: str, db: AsyncIOMotorDatabase) -> bool:
+    async def verify_otp(self, email: str, otp: str, avatar: str, db: AsyncIOMotorDatabase) -> str:
+        print(f"active users {self.active_otp}")
+        print(f"email {email}")
         if email not in self.active_otp:
-            return False
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User didn't requested an OTP.")
 
         entry = self.active_otp[email]
         if datetime.now() > entry["expires"]:
             del self.active_otp[email]
-            return False
+            raise HTTPException(status_code=HTTP_408_REQUEST_TIMEOUT, detail="OTP expired.")
 
         if entry["otp"] == otp:
-            await self.__create_new_user(SignUpModel(**entry["data"]), db)
+            pend_user = await get_temp_user(email, db)
+            print(f"pend user {pend_user}")
+            if pend_user is None:
+                raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User is not registered, Direct OTP request is now allowed!")
+
+            await self.__create_new_user(pend_user, avatar, db)
+            await remove_temp_user(email, db)
             del self.active_otp[email]
-            return True
-        return False
+            return create_access_token(email, "temp_id", timedelta(minutes=5))
+
+        return HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong OTP.")
 
     @staticmethod
-    async def __create_new_user(signup_model: SignUpModel, db: AsyncIOMotorDatabase):
-        if signup_model.email is None or signup_model.password is None or signup_model is None:
+    async def __create_new_user(pend_user_shema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
+        if pend_user_shema.email is None or pend_user_shema.passwordHash is None or pend_user_shema is None:
             raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Invalid signup data")
-        await create_user(signup_model, db=db)
+        await create_user(pend_user_shema, avatar, db=db)

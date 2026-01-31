@@ -18,7 +18,7 @@ document.getElementById("doneBtn").addEventListener("click", () => {
     console.log("Selected avatar:", selectedAvatar);
 
 
-    localStorage.setItem("picked_avatar", selectedAvatar);
+    sessionStorage.setItem("picked_avatar", selectedAvatar);
 
     window.location.href = "/verify_otp";
 });

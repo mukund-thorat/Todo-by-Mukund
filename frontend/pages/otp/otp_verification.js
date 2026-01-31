@@ -2,11 +2,14 @@ const form = document.getElementById('otp-form');
 const otp_inputs = document.querySelectorAll('.otp-input');
 
 form.addEventListener('submit', async (e) => {
-    const signupData = JSON.parse(localStorage.getItem('signupData'));
-    const email = signupData.email;
-    const password = signupData.password;
     e.preventDefault();
+    const email = sessionStorage.getItem('email');
     let otp = ""
+    let avatar_url = sessionStorage.getItem("picked_avatar");
+
+    if (!avatar_url) {
+        alert("Exception occurred with avatar");
+    }
 
     otp_inputs.forEach(input => {
         otp += input.value;
@@ -18,14 +21,18 @@ form.addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({email: email, otp: otp})
+            body: JSON.stringify({email: email, otp: otp, avatar: avatar_url})
         });
 
         const result = await response.json();
         console.log(result);
-        if (result === true && response.ok){
+        if (result && response.ok){
             console.log('Otp verification successful!');
-            await login(email, password);
+            if (!result['login_token']){
+                alert("Exception occurred with login token");
+                return;
+            }
+            await token_login(result['login_token']);
         } else {
             alert("Otp verification failed!");
         }
@@ -33,18 +40,14 @@ form.addEventListener('submit', async (e) => {
 })
 
 
-async function login(email, password) {
-    const formData = new URLSearchParams();
-    formData.append("username", email);
-    formData.append("password", password);
-
-    const response = await fetch("auth/login", {
+async function token_login(token) {
+    const response = await fetch("auth/token_login", {
         method: 'POST',
         headers: {
             "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": `Bearer ${token}`,
         },
         credentials: 'include',
-        body: formData.toString()
     })
 
     const result = await response.json();
@@ -60,20 +63,3 @@ async function access_app(access_token) {
   sessionStorage.setItem("access_token", access_token);
   window.location.href = "/app";
 }
-
-async function refreshAccessToken() {
-  const response = await fetch("/auth/refresh", {
-    method: "POST",
-    credentials: "include"
-  });
-
-  const result = await response.json();
-  if (response.ok) {
-    return result['access_token'];
-  } else {
-    throw new Error("Session expired");
-  }
-}
-
-
-// TODO Don't store signup data in localstorage

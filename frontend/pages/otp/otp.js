@@ -1,33 +1,22 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    let signup_data;
-    let avatar_url;
+    let email;
+
     try {
-        signup_data = JSON.parse(localStorage.getItem("signupData"))
-        avatar_url = localStorage.getItem("picked_avatar")
+        email = sessionStorage.getItem('email');
     } catch (error) {
         prompt('Unauthorized access');
     }
 
-    if (signup_data === null || signup_data === undefined || avatar_url === null || avatar_url === undefined) {
+    if (email === null || email === undefined) {
         prompt('Unauthorized access');
     }
 
-    const {firstname, lastname, email, password} = signup_data;
-    const avatar = avatar_url;
-
     try{
-        const response = await fetch("/auth/otp/request", {
+        const response = await fetch(`/auth/otp/request?email=${email}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                firstName: firstname,
-                lastName: lastname,
-                email: email,
-                avatar: avatar,
-                password: password,
-            })
         })
 
         const result = await response.json();
