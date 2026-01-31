@@ -19,7 +19,14 @@ class UserSchema(BaseModel):
     lastName: str
     email: EmailStr
     passwordHash: str
+    avatar: str
     refreshToken: Optional[str]
     createdAt: datetime
     deletedAt: Optional[datetime]
     lastLogIn: Optional[datetime]
+
+class PendingUserSchema(BaseModel):
+    firstName: str
+    lastName: str
+    email: EmailStr
+    passwordHash: str

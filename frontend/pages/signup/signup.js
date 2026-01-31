@@ -15,12 +15,26 @@ registerForm.addEventListener("submit", async (e) => {
         return;
     }
 
-    localStorage.setItem("signupData", JSON.stringify({
-        firstname,
-        lastname,
-        email,
-        password
-    }));
+    const response = await fetch("/auth/register", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            firstName: firstname,
+            lastName: lastname,
+            email: email,
+            password: password,
+            avatar: null
+        })
+    })
 
-    window.location.href = "/pick_avatar";
+    const result = await response.json();
+
+    if (response.status === 202 && result) {
+        sessionStorage.setItem("email", email);
+        window.location.href = "/pick_avatar";
+    } else {
+        alert("Something went wrong!");
+    }
 });

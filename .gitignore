@@ -9,3 +9,4 @@
 /backend/routers/web/__pycache__
 /backend/utils/__pycache__
 __pycache__/
+*.log

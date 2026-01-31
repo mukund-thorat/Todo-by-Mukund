@@ -3,7 +3,6 @@ from pydantic import BaseModel, EmailStr
 class SignUpModel(BaseModel):
     firstName: str
     lastName: str
-    avatar: str
     email: EmailStr
     password: str
 
@@ -18,3 +17,4 @@ class Token(BaseModel):
 class OTPVerificationModel(BaseModel):
     email: EmailStr
     otp: str
+    avatar: str

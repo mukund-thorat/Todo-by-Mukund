@@ -3,7 +3,7 @@ from fastapi.params import Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ...database.core import get_db
-from ...database.crud import get_todos, create_todo, update, delete
+from ...database.service import get_todos, create_todo, update, delete
 from ...database.schemas import TodoSchema
 from ...utils.const import RATE_LIMIT
 from ...utils.rate_limiting import limiter
