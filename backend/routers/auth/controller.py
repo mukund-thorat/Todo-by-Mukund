@@ -14,10 +14,10 @@ from backend.database.schemas import UserSchema
 from backend.database.user_service import get_user_by_refresh_token, update_refresh_token, update_user_records, \
     get_user_by_email
 from backend.routers.auth.model import UserCredentials, SignUpModel, LoginOTPVerificationModel, OTPVerificationModel, \
-    PasswordRecovery
+    PasswordRecoveryModel, PasswordChangeModel, RecoveryOTPModel
 from backend.routers.auth.otp_manager import OTPManager
 from backend.routers.auth.service import authenticate_user, create_access_token, get_current_user, \
-    create_refresh_token, store_temp_user, change_user_password
+    create_refresh_token, store_temp_user, change_user_password_by_token
 from backend.utils.const import ACCESS_TOKEN_EXPIRE_MINUTES, RATE_LIMIT
 from backend.utils.rate_limiting import limiter
 
@@ -32,9 +32,6 @@ async def login(request: Request, response: Response, form_data: Annotated[OAuth
     credentials = UserCredentials(email=form_data.username, password=form_data.password)
     user = await authenticate_user(credentials=credentials, db=db)
 
-    if not user:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
-
     return await login_process(response, user, db)
 
 @router.get("/recovery/recover_password", status_code=HTTP_200_OK)
@@ -48,15 +45,15 @@ async def recover_password(request: Request, email: EmailStr, db: AsyncIOMotorDa
 
 @router.post("/recovery/verify_otp", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_recovery_otp(request: Request, otp_payload: OTPVerificationModel):
+async def verify_recovery_otp(request: Request, otp_payload: RecoveryOTPModel):
     otp_manager = OTPManager()
     return await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, purpose="RECOVER_PASSWORD",
                                         callback=lambda: otp_manager.recover_password_verification(otp_payload.email))
 
 @router.post("/recovery/change_password", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_recovery_otp(request: Request, payload: PasswordRecovery, db: AsyncIOMotorDatabase = Depends(get_db)):
-    return await change_user_password(token=payload.recoveryToken, new_password=payload.newPassword, db=db)
+async def verify_recovery_otp(request: Request, payload: PasswordRecoveryModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+    return await change_user_password_by_token(token=payload.recoveryToken, new_password=payload.newPassword, db=db)
 
 @router.get("/refresh")
 @limiter.limit(f"{RATE_LIMIT}/minute")
@@ -162,6 +159,25 @@ async def verify_password(request: Request, credentials: UserCredentials, _: Use
 
 @router.post("/delete/verify_otp", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_verifier(request: Request, otp_payload: OTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def otp_verifier(request: Request, otp_payload: OTPVerificationModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
     otp_manager = OTPManager()
-    return await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, purpose="DELETE_ACCOUNT", callback=lambda : otp_manager.delete_user(otp_payload.email, db))
+    return await otp_manager.verify_otp(user.email, otp_payload.otp, purpose="DELETE_ACCOUNT", callback=lambda : otp_manager.delete_user(otp_payload.email, db))
+
+@router.post("/change/verify_password")
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def verify_password(request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+    await authenticate_user(credentials=credentials, db=db)
+
+    otp_manager = OTPManager()
+    return otp_manager.send_otp(email=credentials.email, purpose="PASS_CHANGE")
+
+@router.post("/change/verify_otp", status_code=HTTP_200_OK)
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def otp_verifier(request: Request, payload: PasswordChangeModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+    otp_manager = OTPManager()
+    return await otp_manager.verify_otp(user.email, payload.otp, purpose="PASS_CHANGE", callback=lambda : otp_manager.change_user_password(email=user.email, new_password=payload.newPassword, db=db))
+
+@router.get("/user/email", status_code=HTTP_200_OK)
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def get_user_email(request: Request, user: UserSchema = Depends(get_current_user)):
+    return {"email": user.email}

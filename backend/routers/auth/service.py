@@ -41,11 +41,11 @@ async def create_user(pend_user_schema: PendingUserSchema, avatar: str, db: Asyn
 
     await add_new_user(user_schema, db)
 
-async def authenticate_user(credentials: UserCredentials, db: AsyncIOMotorDatabase) -> UserSchema | None:
+async def authenticate_user(credentials: UserCredentials, db: AsyncIOMotorDatabase) -> UserSchema:
     user: Optional[UserSchema] = await get_user_by_email(email=credentials.email, db=db)
 
     if user is None or not bcrypt_context.verify(credentials.password, user.passwordHash):
-        return None
+        return HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid email or password", headers={"WWW-Authenticate": "Bearer"})
     return user
 
 def create_access_token(email: EmailStr, user_id: str, delta_expires: timedelta):
@@ -138,6 +138,9 @@ async def store_temp_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
 
     await add_temp_user(pend_schema, db=db)
 
-async def change_user_password(token: str, new_password: str, db: AsyncIOMotorDatabase) -> bool:
+async def change_user_password_by_token(token: str, new_password: str, db: AsyncIOMotorDatabase) -> bool:
     user: UserSchema = await get_current_user(token=token, db=db)
     return await update_user_password(user.email, bcrypt_context.hash(new_password), db)
+
+async def change_user_password_by_email(email: EmailStr, new_password: str, db: AsyncIOMotorDatabase) -> bool:
+    return await update_user_password(email, bcrypt_context.hash(new_password), db)

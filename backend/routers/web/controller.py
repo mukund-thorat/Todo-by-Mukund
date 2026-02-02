@@ -47,3 +47,7 @@ async def app_page(request: Request, user: UserSchema = Depends(get_current_user
 @router.get("/delete_account")
 async def delete_account(request: Request, user: UserSchema = Depends(get_current_user_refresh_token)):
     return templates.TemplateResponse('app/delete_account/delete.html', {"request": request, "email": user.email})
+
+@router.get("/change_password")
+async def change_password(request: Request, _: UserSchema = Depends(get_current_user_refresh_token)):
+    return templates.TemplateResponse('app/change_pass/change_pass.html', {"request": request})

@@ -51,3 +51,17 @@ export async function refresh_request(options = {}) {
     return false;
   }
 }
+
+
+export async function logout() {
+    const response = await fetchWithAuth("auth/logout", {
+        method: "GET",
+    })
+
+    const result = await response.json();
+
+    if (response.status === 200 && result) {
+        sessionStorage.removeItem("access_token")
+        window.location.href = "/login";
+    }
+}

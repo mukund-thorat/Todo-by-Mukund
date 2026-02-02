@@ -20,10 +20,16 @@ class LoginOTPVerificationModel(BaseModel):
     avatar: str
 
 class OTPVerificationModel(BaseModel):
-    email: EmailStr
     otp: str
 
-class PasswordRecovery(BaseModel):
+class PasswordRecoveryModel(BaseModel):
     newPassword: str
     recoveryToken: str
 
+class RecoveryOTPModel(BaseModel):
+    email: EmailStr
+    otp: str
+
+class PasswordChangeModel(BaseModel):
+    newPassword: str
+    otp: str

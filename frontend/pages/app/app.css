@@ -95,6 +95,7 @@
     display: flex;
     align-items: center;
     font-size: var(--font-size-large);
+    gap: var(--spacing-xsmall);
 }
 
 .footer p img{
@@ -109,7 +110,6 @@
     text-align: center;
     font-size: 32px;
 }
-
 
 #todos-box{
     display: flex;
