@@ -38,3 +38,16 @@ addForm.addEventListener("submit", async (e) => {
   }
 });
 
+const avatar = document.getElementById("avatar");
+const profileMenu = document.getElementById("profile-menu");
+
+avatar.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    profileMenu.classList.toggle("hidden")
+})
+
+document.addEventListener("click", (e) => {
+    if (!avatar.contains(e.target) && !profileMenu.contains(e.target)) {
+        profileMenu.classList.add("hidden");
+    }
+});

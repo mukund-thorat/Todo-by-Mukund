@@ -31,7 +31,8 @@
     gap: var(--spacing-small);
 }
 
-a{
+section a button{
     text-decoration: none;
     color: black;
+    cursor: pointer;
 }

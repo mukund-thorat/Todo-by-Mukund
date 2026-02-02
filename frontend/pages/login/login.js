@@ -21,7 +21,6 @@ loginForm.addEventListener("submit", async (e) => {
     const result = await response.json();
 
     if (response.ok && result) {
-        console.log(result);
         if (!result['access_token']) {
             alert("Exception occurred with login token");
             return;
