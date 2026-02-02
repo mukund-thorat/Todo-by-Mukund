@@ -14,8 +14,9 @@ from starlette.status import HTTP_406_NOT_ACCEPTABLE, HTTP_404_NOT_FOUND, HTTP_4
 
 from backend.database.pend_user_service import get_temp_user, remove_temp_user
 from backend.database.schemas import PendingUserSchema
-from backend.database.user_service import remove_user
-from backend.routers.auth.service import create_user, create_access_token
+from backend.database.user_service import remove_user, update_user_records
+from backend.routers.auth.service import create_user, create_access_token, \
+    change_user_password_by_email
 
 
 class OTPManager:
@@ -54,13 +55,13 @@ class OTPManager:
             return True
 
         except SMTPException:
-            return False
+            raise HTTPException(status_code=500, detail="Failed to send OTP email.")
 
     @staticmethod
-    async def __create_new_user(pend_user_shema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
-        if pend_user_shema.email is None or pend_user_shema.passwordHash is None or pend_user_shema is None:
+    async def __create_new_user(pend_user_schema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
+        if pend_user_schema.email is None or pend_user_schema.passwordHash is None or pend_user_schema is None:
             raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Invalid signup data")
-        await create_user(pend_user_shema, avatar, db=db)
+        await create_user(pend_user_schema, avatar, db=db)
 
     async def verify_otp(self, email: str, otp: str, purpose: str, callback: Callable[[], Awaitable[Any]]) -> Any:
         if f"{purpose}:{email}" not in self.active_otp:
@@ -90,4 +91,16 @@ class OTPManager:
     async def delete_user(self, email: EmailStr, db: AsyncIOMotorDatabase):
         response = await remove_user(email, db)
         del self.active_otp[f"DELETE_ACCOUNT:{email}"]
+        await update_user_records(email, "deletedAt", datetime.now(), db)
         return response
+
+    async def recover_password_verification(self, email: EmailStr) -> str:
+        del self.active_otp[f"RECOVER_PASSWORD:{email}"]
+        return {
+            "recovery_token": create_access_token(email=email, user_id="RECOVERY", delta_expires=timedelta(minutes=5)),
+            "token_type": "bearer"
+        }
+
+    async def change_user_password(self, email: EmailStr, new_password: str, db: AsyncIOMotorDatabase):
+        del self.active_otp[f"PASS_CHANGE:{email}"]
+        return await change_user_password_by_email(email=email, new_password=new_password, db=db)

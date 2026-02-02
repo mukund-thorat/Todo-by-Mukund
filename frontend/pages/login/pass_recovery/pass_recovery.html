@@ -6,26 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Todo By Mukund - Login</title>
     <link rel="stylesheet" href="/static/utils/components.css">
-    <link rel="stylesheet" href="/static/pages/login/login.css">
-    <script src="/static/pages/login/login.js" defer></script>
+    <link rel="stylesheet" href="/static/pages/login/pass_recovery/pass_recovery.css">
+    <script src="/static/pages/login/pass_recovery/recovery.js" defer></script>
 </head>
 
-<body>
-    <form id="login-form">
+<body>  
+    <form id="pass-form">
         <div class="shadow-box">
-            <h1>Log-In</h1>
+            <h1>Recover account</h1>
             <section class="fields">
                 <div class="field">
                     <label for="email">Email</label>
                     <input type="email" name="email" id="email" placeholder="example@test.com">
                 </div>
-                <div class="field">
-                    <label for="password">Password</label>
-                    <input type="password" name="password" id="password" placeholder="Enter your password">
-                </div>
             </section>
-            <a id="f_pass" href="/recover_password">Forget password?</a>
-            <button type="submit" class="primary-btn">Proceed</button>
+            <hr>
+            <button type="submit" id="submit-btn" class="primary-btn spinner-btn">
+                <span class="spinner hide"></span>
+                <span class="btn-text">Generate OTP</span>
+            </button>
         </div>
     </form>
 </body>

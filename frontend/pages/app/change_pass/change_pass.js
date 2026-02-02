@@ -1,30 +1,51 @@
-import { fetchWithAuth } from "/static/utils/utils.js";
+import { fetchWithAuth, logout } from "/static/utils/utils.js";
 
-const form = document.getElementById('delete-form');
+const form = document.getElementById('change-pass-form');
+
+async function getEmail() {
+    const response = await fetchWithAuth('/auth/user/email', {
+        method: 'GET',
+    });
+    const result = await response.json();
+    if (response.ok) {
+        return result.email;
+    } else {
+        alert("Failed to fetch user email");
+        throw new Error("Failed to fetch user email");
+    }
+}
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const email = form.email.value;
-    const password = form.password.value;
+    const email = await getEmail();
+    const oldPassword = form['old-password'].value;
+    const newPassword = form['password'].value;
+    const confirmPassword = form['confirm-password'].value;
+
+    if (newPassword!== confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+    }
+
     const submitBtn = document.getElementById("submit-btn");
     submitBtn.disabled = true;
     const spinner = submitBtn.querySelector(".spinner");
     const btnText = submitBtn.querySelector(".btn-text");
     btnText.textContent = "Generating OTP";
     spinner.classList.remove("hide");
-    const response = await fetchWithAuth('/auth/delete/verify_password', {
+    const response = await fetchWithAuth('/auth/change/verify_password', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email, password: oldPassword}),
     });
 
     const result = await response.json();
-
+    console.log(result);
     if (response.ok && result === true) {
         document.body.innerHTML = `
 <form id="otp-form">
     <div class="shadow-box">
-        <h1>Delete Account</h1>
+        <h1>Change Password</h1>
         <section class="fields">
             <div class="otp-field">
                 <p id="msg">OTP sent to ${email}</p>
@@ -38,10 +59,9 @@ form.addEventListener("submit", async (e) => {
                 </div>
             </div>
         </section>
-        <button type="submit" class="primary-btn">Verify & Delete</button>
+        <button id="submit-btn" type="submit" class="primary-btn">Verify & change</button>
     </div>
 </form>
-<script src="/static/pages/otp/inputs.js" defer></script>
 `;
 
         const otpForm = document.getElementById("otp-form");
@@ -51,7 +71,7 @@ form.addEventListener("submit", async (e) => {
             // Handle input
             input.addEventListener('input', (e) => {
                 // Check if input is a number
-                if (!/^[0-9]$/.test(e.data) && e.inputType !== 'deleteContentBackward') {
+                if (!/^[0-9]$/.test(e.data) && e.inputType !== 'changeContentBackward') {
                     input.value = ''; // clear invalid input
                     return;
                 }
@@ -112,9 +132,9 @@ form.addEventListener("submit", async (e) => {
                 return;
             }
 
-            const response = await fetchWithAuth('/auth/delete/verify_otp', {
+            const response = await fetchWithAuth('/auth/change/verify_otp', {
                 method: 'POST',
-                body: JSON.stringify({ otp }),
+                body: JSON.stringify({ newPassword: newPassword, otp: otp }),
             });
 
             const result = await response.json();
@@ -123,11 +143,17 @@ form.addEventListener("submit", async (e) => {
                 const button = document.getElementById("submit-btn");
                 button.remove()
                 const fields = document.querySelector(".fields");
-                fields.innerHTML = `<p id="msg">Your <span style="color: #19B240 !important">${email}</span> account has been successfully deleted.</p>
-                <a href="/login">Login Here!</a>`;
+                fields.innerHTML = `<p id="msg">Your Password has been successfully changed.</p>
+                <button class="nav-btn"><a class="url" href="/app">Goto App</a></button>
+                <button class="nav-btn" id="logout-btn"><a class="url">Re-Login</a></button>`;
             } else {
                 alert("OTP verification failed!");
             }
+        });
+
+        const logoutBtn = document.getElementById("logout-btn");
+        logoutBtn.addEventListener("click", async () => {
+            await logout();
         });
     }
 });

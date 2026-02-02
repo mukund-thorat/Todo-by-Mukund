@@ -49,14 +49,14 @@
                     <img id="avatar" src="{{ user.avatar }}" alt="Avatar">
                     <section id="profile-menu" class="hidden">
                         <div>
-                            <button id="forget-btn">Forget password</button>
+                            <button id="forget-btn"><a style="text-decoration: none; color: var(--quaternary-color)" href="/change_password">Change password</a></button>
                             <button id="logout-btn">Logout</button>
                         </div>
                         <hr>
                         <a href="/delete_account"><button id="delete-acc-btn">Delete account</button></a>
                     </section>
                 </div>
-                <h3>🖐️ Good Morning,</h3>
+                <h3>🖐️ Hello,</h3>
                 <h1>{{ user.firstName }}</h1>
             </div>
 

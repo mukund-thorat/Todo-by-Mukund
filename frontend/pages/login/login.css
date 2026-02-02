@@ -41,3 +41,10 @@ h1{
     border: 3px solid var(--quaternary-color);
     border-radius: 9px;
 }
+
+#f_pass{
+    width: 100%;
+    text-align: right;
+    text-decoration: none;
+    color: var(--quaternary-color);
+}
