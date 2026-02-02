@@ -57,10 +57,10 @@ class OTPManager:
             return False
 
     @staticmethod
-    async def __create_new_user(pend_user_shema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
-        if pend_user_shema.email is None or pend_user_shema.passwordHash is None or pend_user_shema is None:
+    async def __create_new_user(pend_user_schema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
+        if pend_user_schema.email is None or pend_user_schema.passwordHash is None or pend_user_schema is None:
             raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Invalid signup data")
-        await create_user(pend_user_shema, avatar, db=db)
+        await create_user(pend_user_schema, avatar, db=db)
 
     async def verify_otp(self, email: str, otp: str, purpose: str, callback: Callable[[], Awaitable[Any]]) -> Any:
         if f"{purpose}:{email}" not in self.active_otp:
@@ -91,3 +91,10 @@ class OTPManager:
         response = await remove_user(email, db)
         del self.active_otp[f"DELETE_ACCOUNT:{email}"]
         return response
+
+    async def recover_password_verification(self, email: EmailStr) -> str:
+        del self.active_otp[f"RECOVER_PASSWORD:{email}"]
+        return {
+            "recovery_token": create_access_token(email=email, user_id="RECOVERY", delta_expires=timedelta(minutes=5)),
+            "token_type": "bearer"
+        }

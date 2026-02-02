@@ -35,11 +35,15 @@ async def login(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
     is_present = await redirect_logged_in_user(request.cookies.get("refresh_token"), db)
     return is_present if is_present else templates.TemplateResponse('login/login.html', {"request": request})
 
+@router.get("/recover_password")
+async def recover_password(request: Request):
+    return templates.TemplateResponse('login/pass_recovery/pass_recovery.html', {"request": request})
+
 @router.get("/app")
 async def app_page(request: Request, user: UserSchema = Depends(get_current_user_refresh_token), db: AsyncIOMotorDatabase = Depends(get_db)):
     todos = await get_active_todos(user_id=user.userId, limit=15, skip=0, db=db)
     return templates.TemplateResponse('app/app.html', {"request": request, "user": user, "todos": todos})
 
 @router.get("/delete_account")
-async def app_page(request: Request, user: UserSchema = Depends(get_current_user_refresh_token)):
+async def delete_account(request: Request, user: UserSchema = Depends(get_current_user_refresh_token)):
     return templates.TemplateResponse('app/delete_account/delete.html', {"request": request, "email": user.email})

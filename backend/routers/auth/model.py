@@ -19,6 +19,11 @@ class LoginOTPVerificationModel(BaseModel):
     otp: str
     avatar: str
 
-class DeleteOTPVerificationModel(BaseModel):
+class OTPVerificationModel(BaseModel):
     email: EmailStr
     otp: str
+
+class PasswordRecovery(BaseModel):
+    newPassword: str
+    recoveryToken: str
+

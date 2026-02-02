@@ -43,7 +43,11 @@ async def remove_user(email: EmailStr, db: AsyncIOMotorDatabase):
         )
 
 async def update_user_password(email: EmailStr, new_hashed_password: str, db: AsyncIOMotorDatabase):
-    await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {"passwordHash": new_hashed_password}})
+    response = await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {"passwordHash": new_hashed_password}})
+    if response.modified_count == 0:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User not found")
+
+    return True
 
 async def update_user_records(email: EmailStr, date_time_field: str, new_date_time: datetime, db: AsyncIOMotorDatabase):
     await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {date_time_field: new_date_time}})

@@ -120,9 +120,11 @@ form.addEventListener("submit", async (e) => {
             const result = await response.json();
 
             if (response.ok && result === true) {
-                document.querySelector(".primary-btn").remove()
+                const button = document.getElementById("submit-btn");
+                button.remove()
                 const fields = document.querySelector(".fields");
-                fields.innerHTML = `<p id="msg">Your <span style="color: #19B240 !important">${email}</span> account has been successfully deleted.</p>`;
+                fields.innerHTML = `<p id="msg">Your <span style="color: #19B240 !important">${email}</span> account has been successfully deleted.</p>
+                <a href="/login">Login Here!</a>`;
             } else {
                 alert("OTP verification failed!");
             }

@@ -16,7 +16,8 @@ from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 from backend.database.core import get_db
 from backend.database.pend_user_service import add_temp_user
 from backend.database.schemas import UserSchema, PendingUserSchema
-from backend.database.user_service import add_new_user, get_user_by_email, get_user_by_rt_and_user_id
+from backend.database.user_service import add_new_user, get_user_by_email, get_user_by_rt_and_user_id, \
+    update_user_password
 from backend.routers.auth.model import UserCredentials, SignUpModel
 from backend.utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
 
@@ -64,7 +65,7 @@ def create_refresh_token(user_id: str):
 
     return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
 
-async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotorDatabase = Depends(get_db)) -> UserSchema:
     try:
         payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
         email: str = payload.get("email")
@@ -136,3 +137,7 @@ async def store_temp_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
     )
 
     await add_temp_user(pend_schema, db=db)
+
+async def change_user_password(token: str, new_password: str, db: AsyncIOMotorDatabase) -> bool:
+    user: UserSchema = await get_current_user(token=token, db=db)
+    return await update_user_password(user.email, bcrypt_context.hash(new_password), db)
