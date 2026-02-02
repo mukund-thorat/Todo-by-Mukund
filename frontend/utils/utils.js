@@ -30,7 +30,7 @@ export async function fetchWithAuth(url, options = {}, callback = null) {
 }
 
 export async function refresh_request(options = {}) {
-  const refreshRes = await fetch("/refresh", {
+  const refreshRes = await fetch("/auth/refresh", {
     method: "GET",
     credentials: "include"
   });

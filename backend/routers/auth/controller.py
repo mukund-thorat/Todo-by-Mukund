@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -11,7 +11,7 @@ from starlette.status import HTTP_201_CREATED, HTTP_406_NOT_ACCEPTABLE, HTTP_202
 
 from backend.database.core import get_db
 from backend.database.schemas import UserSchema
-from backend.database.user_service import get_user_by_refresh_token, update_refresh_token
+from backend.database.user_service import get_user_by_refresh_token, update_refresh_token, update_user_records
 from backend.routers.auth.model import UserCredentials, SignUpModel, OTPVerificationModel
 from backend.routers.auth.otp_manager import OTPManager
 from backend.routers.auth.service import authenticate_user, create_access_token, get_current_user, \
@@ -46,14 +46,14 @@ async def token_refresher(request: Request, response: Response, refresh_token: s
     if user is None:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid refresh token!")
 
-    new_refresh_token = create_refresh_token(user_id=user['userId'])
-    access_token = create_access_token(email=user['email'], user_id=user['userId'], delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    new_refresh_token = create_refresh_token(user_id=user.userId)
+    access_token = create_access_token(email=user.email, user_id=user.userId, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
 
-    await update_refresh_token(email=user['email'], new_refresh_token=new_refresh_token, db=db)
+    await update_refresh_token(email=user.email, new_refresh_token=new_refresh_token, db=db)
 
     response.set_cookie(
         key="refresh_token",
-        value=refresh_token,
+        value=new_refresh_token,
         httponly=True,
         secure=True,
         samesite="strict",
@@ -64,6 +64,12 @@ async def token_refresher(request: Request, response: Response, refresh_token: s
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+@router.get("/logout", status_code=HTTP_200_OK)
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def logout(request: Request, response: Response):
+    response.delete_cookie(key="refresh_token")
+    return {"message": "Successfully logged out", "status": "SUCCESS"}
 
 @router.get("/me")
 @limiter.limit(f"{RATE_LIMIT}/minute")
@@ -104,7 +110,6 @@ async def token_login(request: Request, response: Response, user: UserSchema = D
 
 async def login_process(response: Response, user: UserSchema, db: AsyncIOMotorDatabase):
     refresh_token = create_refresh_token(user_id=user.userId)
-
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -115,6 +120,8 @@ async def login_process(response: Response, user: UserSchema, db: AsyncIOMotorDa
     )
 
     await update_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
+
+    await update_user_records(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
 
     return {
         "access_token": create_access_token(email=user.email, user_id=user.userId,delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),

@@ -105,6 +105,28 @@ async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: 
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid session")
 
+
+async def is_user_already_logged_in(refresh_token: str, db: AsyncIOMotorDatabase = Depends(get_db)) -> bool:
+    if not refresh_token:
+        return False
+
+    try:
+        payload = jwt.decode(refresh_token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+        user_id = payload.get("userId")
+
+        if not user_id:
+            return False
+
+        user = await get_user_by_rt_and_user_id(user_id, refresh_token, db)
+        if not user:
+            return False
+
+        return True
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Session expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid session")
+
 async def store_temp_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
     pend_schema = PendingUserSchema(
         firstName=signup_data.firstName,

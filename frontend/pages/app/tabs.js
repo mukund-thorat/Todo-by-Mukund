@@ -2,22 +2,33 @@ import { loadTodos } from "/static/pages/app/todo.js";
 import { fetchWithAuth } from "/static/utils/utils.js";
 
 const todosContainer = document.getElementById("todos-box");
-
 const active_btn = document.getElementById("active-tab-btn");
 const completed_btn = document.getElementById("completed-tab-btn");
 
-let inactive_todos_list = []
+export let currentTab = "active";
+export let inactive_todos_list = []
+
+export function setInactiveTodos(list) {
+    inactive_todos_list.length = 0;
+    inactive_todos_list.push(...list);
+}
+
+export function getInactiveTodos() {
+    return inactive_todos_list;
+}
 
 active_btn.addEventListener("click", async () => {
     await loadTodos();
+    currentTab = "active";
     active_btn.classList.add("selected-tab");
     completed_btn.classList.remove("selected-tab");
 });
 
 completed_btn.addEventListener("click", async () => {
-    await loadInActiveTodos();
     completed_btn.classList.add("selected-tab");
+    currentTab = "inactive";
     active_btn.classList.remove("selected-tab");
+    await loadInActiveTodos();
 });
 
 async function loadInActiveTodos() {
@@ -25,10 +36,16 @@ async function loadInActiveTodos() {
         method: "GET",
     });
 
-    inactive_todos_list = await response.json();
+    const data = await response.json();
+    setInactiveTodos(data);
+    
     let todo_item_html = "";
 
     if (response?.ok) {
+        if (inactive_todos_list.length === 0) {
+            todosContainer.innerHTML = `<h3 class="no-todos-msg">No active todos. Add some!</h3>`;
+            return;
+        }
         inactive_todos_list.forEach(todo => {
             todo_item_html += `
             <div class="todo-item" data-id="${todo.id}">

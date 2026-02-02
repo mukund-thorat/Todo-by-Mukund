@@ -1,11 +1,12 @@
 import { fetchWithAuth } from "/static/utils/utils.js";
+import { currentTab, getInactiveTodos, setInactiveTodos } from "/static/pages/app/tabs.js";
 
 const todosContainer = document.getElementById("todos-box");
 export let todos_list = []
 
 document.addEventListener("DOMContentLoaded", async (e) => {
     e.preventDefault();
-    await loadTodos();    
+    await loadTodos();
 })
 
 export async function loadTodos() {
@@ -17,6 +18,10 @@ export async function loadTodos() {
     let todo_item_html = "";
 
     if (response?.ok) {
+        if (todos_list.length === 0) {
+            todosContainer.innerHTML = `<h3 class="no-todos-msg">No active todos. Add some!</h3>`;
+            return;
+        }
         todos_list.forEach(todo => {
             todo_item_html += `
 <div class="todo-item" data-id="${todo.id}">
@@ -58,7 +63,19 @@ async function delete_todo(id) {
 
     if (response.ok) {
         document.querySelector(`.todo-item[data-id="${id}"]`).remove();
-        todos_list = todos_list.filter(todo => todo.id !== id);
+
+        if (currentTab === "active") {
+            todos_list = todos_list.filter(todo => todo.id !== id);
+            if (todos_list.length === 0) {
+                todosContainer.innerHTML = `<h3 class="no-todos-msg">No active todos. Add some!</h3>`;
+            }
+        } else {
+            const updated = getInactiveTodos().filter(todo => todo.id !== id);
+            setInactiveTodos(updated);
+            if (updated.length === 0) {
+                todosContainer.innerHTML = `<h3 class="no-todos-msg">No completed todos.</h3>`;
+            }
+        }
     }
 }
 
@@ -73,7 +90,6 @@ todosContainer.addEventListener("click", async (e) => {
     titleEl.contentEditable = "true";
     titleEl.focus();
 
-    // Move cursor to end
     document.execCommand("selectAll", false, null);
     document.getSelection().collapseToEnd();
 
@@ -86,7 +102,7 @@ todosContainer.addEventListener("click", async (e) => {
         if (updatedTitle && updatedTitle !== originalTitle) {
             update_title(todoId, updatedTitle);
         } else {
-            titleEl.textContent = originalTitle; // revert if empty
+            titleEl.textContent = originalTitle;
         }
 
         titleEl.removeEventListener("blur", saveIfChanged);
@@ -115,7 +131,12 @@ async function update_title(id, updated_title) {
     });
 
     if (response.ok) {
-        const todo = todos_list.find(t => t.id === id);
+        let todo;
+        if (currentTab === "active") {
+            todo = todos_list.find(t => t.id === id);
+        } else {
+            todo = getInactiveTodos().find(t => t.id === id);
+        }
         if (todo) todo.title = updated_title;
     }
 }
@@ -125,9 +146,20 @@ async function todo_marker(id, mark) {
         method: "PUT",
     });
 
-    if (response.ok){
+    if (response.ok) {
         document.querySelector(`.todo-item[data-id="${id}"]`).remove();
-        todos_list = todos_list.filter(todo => todo.id !== id);
+        if (currentTab === "active") {
+            todos_list = todos_list.filter(todo => todo.id !== id);
+            if (todos_list.length === 0) {
+                todosContainer.innerHTML = `<h3 class="no-todos-msg">No active todos. Add some!</h3>`;
+            }
+        } else {
+            const updated = getInactiveTodos().filter(todo => todo.id !== id);
+            setInactiveTodos(updated);
+            if (updated.length === 0) {
+                todosContainer.innerHTML = `<h3 class="no-todos-msg">No completed todos.</h3>`;
+            }
+        }
     }
 }
 
