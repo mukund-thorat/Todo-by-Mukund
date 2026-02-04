@@ -3,7 +3,7 @@ import { fetchWithAuth, logout } from "/static/utils/utils.js";
 const form = document.getElementById('change-pass-form');
 
 async function getEmail() {
-    const response = await fetchWithAuth('/auth/user/email', {
+    const response = await fetchWithAuth('/user/email', {
         method: 'GET',
     });
     const result = await response.json();
@@ -34,14 +34,14 @@ form.addEventListener("submit", async (e) => {
     const btnText = submitBtn.querySelector(".btn-text");
     btnText.textContent = "Generating OTP";
     spinner.classList.remove("hide");
-    const response = await fetchWithAuth('/auth/change/verify_password', {
+    const response = await fetchWithAuth('/user/change_password/verify_password', {
         method: 'POST',
         body: JSON.stringify({ email: email, password: oldPassword}),
     });
 
     const result = await response.json();
     console.log(result);
-    if (response.ok && result === true) {
+    if (response.status === 201 && result.code === "Created") {
         document.body.innerHTML = `
 <form id="otp-form">
     <div class="shadow-box">
@@ -132,14 +132,14 @@ form.addEventListener("submit", async (e) => {
                 return;
             }
 
-            const response = await fetchWithAuth('/auth/change/verify_otp', {
+            const response = await fetchWithAuth('/user/change_password/otp/verify', {
                 method: 'POST',
                 body: JSON.stringify({ newPassword: newPassword, otp: otp }),
             });
 
             const result = await response.json();
 
-            if (response.ok && result === true) {
+            if (response.status === 200 && result.code === "Updated") {
                 const button = document.getElementById("submit-btn");
                 button.remove()
                 const fields = document.querySelector(".fields");

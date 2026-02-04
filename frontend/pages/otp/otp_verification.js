@@ -16,7 +16,7 @@ form.addEventListener('submit', async (e) => {
     })
 
     if (otp.length === 6){
-        const response = await fetch("auth/otp/verify_otp", {
+        const response = await fetch("auth/otp/verify", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -26,11 +26,11 @@ form.addEventListener('submit', async (e) => {
 
         const result = await response.json();
         if (result && response.ok){
-            if (!result['login_token']){
+            if (!result['loginToken']){
                 alert("Exception occurred with login token");
                 return;
             }
-            await token_login(result['login_token']);
+            await token_login(result['loginToken']);
         } else {
             alert("Otp verification failed!");
         }
@@ -49,7 +49,7 @@ async function token_login(token) {
     })
 
     const result = await response.json();
-    if (result !== null && response.ok){
+    if (result && response.status === 202){
         let access_token = result['access_token'];
         await access_app(access_token);
     }

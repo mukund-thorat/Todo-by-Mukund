@@ -2,12 +2,15 @@ import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from .data.core import connect_to_db, close_db
 from .routers.todos.controller import router as todo_router
 from .routers.auth.controller import router as auth_router
+from .routers.user.controller import router as user_router
 from .routers.web.controller import router as web_router
+from .utils.errors import AppError
 
 
 @asynccontextmanager
@@ -17,6 +20,20 @@ async def lifespan(_app: FastAPI):
     await close_db()
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    request_id = getattr(request.state, "request_id", None)
+    content = {
+        "code": exc.code,
+        "message": exc.message,
+        "details": exc.details,
+    }
+    if request_id:
+        content["request_id"] = request_id
+
+    return JSONResponse(status_code=exc.status_code, content=content)
 
 
 @app.middleware("http")
@@ -32,4 +49,5 @@ async def request_id_middleware(request: Request, call_next):
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 app.include_router(router=todo_router)
 app.include_router(router=auth_router)
+app.include_router(router=user_router)
 app.include_router(router=web_router)

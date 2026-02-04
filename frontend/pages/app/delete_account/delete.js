@@ -1,4 +1,4 @@
-import { fetchWithAuth } from "/static/utils/utils.js";
+import { error_widget, fetchWithAuth } from "/static/utils/utils.js";
 
 const form = document.getElementById('delete-form');
 
@@ -13,14 +13,23 @@ form.addEventListener("submit", async (e) => {
     const btnText = submitBtn.querySelector(".btn-text");
     btnText.textContent = "Generating OTP";
     spinner.classList.remove("hide");
-    const response = await fetchWithAuth('/auth/delete/verify_password', {
+    const response = await fetchWithAuth('/user/delete_account/verify_password', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
     });
 
     const result = await response.json();
-
-    if (response.ok && result === true) {
+    if (!response.ok) {
+        submitBtn.disabled = false;
+        spinner.classList.add("hide");
+        btnText.textContent = "Verify & Generate OTP";
+        submitBtn.insertAdjacentHTML(
+            "beforebegin",
+            error_widget("Login failed: " + (result.message || "Unknown error"))
+        );
+        return;
+    }
+    if (response.status === 201 && result.code === "Created") {
         document.body.innerHTML = `
 <form id="otp-form">
     <div class="shadow-box">
@@ -38,7 +47,7 @@ form.addEventListener("submit", async (e) => {
                 </div>
             </div>
         </section>
-        <button type="submit" class="primary-btn">Verify & Delete</button>
+        <button id="submit-btn" type="submit" class="primary-btn">Verify & Delete</button>
     </div>
 </form>
 <script src="/static/pages/otp/inputs.js" defer></script>
@@ -112,14 +121,15 @@ form.addEventListener("submit", async (e) => {
                 return;
             }
 
-            const response = await fetchWithAuth('/auth/delete/verify_otp', {
+            const response = await fetchWithAuth('/user/delete_account/otp/verify', {
                 method: 'POST',
                 body: JSON.stringify({ otp }),
             });
 
             const result = await response.json();
 
-            if (response.ok && result === true) {
+            if (response.status === 200 && result.code === "Acknowledged") {
+                sessionStorage.removeItem("access_token")
                 const button = document.getElementById("submit-btn");
                 button.remove()
                 const fields = document.querySelector(".fields");

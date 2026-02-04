@@ -6,7 +6,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.data.core import get_db
-from backend.routers.auth.repo_pend_user import fetch_pend_user, delete_pend_user
+from backend.routers.auth.repo_pend_user import fetch_pend_user, delete_pend_user, insert_pend_user
 from backend.data.schemas import UserSchema, PendingUserSchema
 from backend.routers.auth.repo_user import insert_user, fetch_user_by_email, fetch_user_by_refresh_token_and_user_id, \
     set_refresh_token
@@ -52,7 +52,7 @@ async def store_pend_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
         passwordHash=get_password_hash(signup_data.password),
     )
 
-    await insert_user(pend_schema, db=db)
+    await insert_pend_user(pend_schema, db=db)
 
 
 async def authenticate_user(credentials: UserCredentials, db: AsyncIOMotorDatabase) -> UserSchema:
@@ -79,6 +79,6 @@ async def tokens_generator(response: Response, user: UserSchema, db: AsyncIOMoto
     )
 
     return Token(
-        accessToken= access_token,
-        tokenType= "bearer"
+        access_token= access_token,
+        token_type= "bearer"
     )

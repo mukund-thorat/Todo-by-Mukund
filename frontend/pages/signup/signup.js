@@ -7,10 +7,10 @@ registerForm.addEventListener("submit", async (e) => {
     const lastname = document.getElementById("lastname").value.trim();
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
-    const cpassword = document.getElementById("cpassword").value.trim();
+    const cPassword = document.getElementById("c_password").value.trim();
 
 
-    if (password !== cpassword) {
+    if (password !== cPassword) {
         alert("Passwords do not match!");
         return;
     }

@@ -10,7 +10,7 @@ form.addEventListener("submit", async (e) => {
     btnText.textContent = "Generating OTP";
     spinner.classList.remove("hide");
     
-    const response = await fetch(`/auth/recovery/recover_password?email=${encodeURIComponent(email)}`, {
+    const response = await fetch(`/auth/recovery/otp/request?email=${encodeURIComponent(email)}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -19,7 +19,7 @@ form.addEventListener("submit", async (e) => {
 
     const result = await response.json();
 
-    if (response.ok && result === true) {
+    if (response.status === 201 && result.code === 'Created') {
         document.body.innerHTML = `
     <form id="otp-form">
         <div class="shadow-box">
@@ -110,7 +110,7 @@ form.addEventListener("submit", async (e) => {
                 return;
             }
 
-            const response = await fetch('/auth/recovery/verify_otp', {
+            const response = await fetch('/auth/recovery/otp/verify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ form.addEventListener("submit", async (e) => {
 
             const result = await response.json();
 
-            if (response.ok && result['recovery_token']) {
+            if (response.status === 200 && result.recoveryToken) {
                 document.body.innerHTML = `
     <form id="new-pass-form">
         <div class="shadow-box">
@@ -147,7 +147,8 @@ form.addEventListener("submit", async (e) => {
                         },
                         body: JSON.stringify({ recoveryToken: recoveryToken, newPassword: newPassword }),
                     });
-                    if (response.ok) {
+                    const result = await response.json();
+                    if (response.status === 202 && result.code === 'Updated') {
                         const button = document.getElementById("submit-btn");
                         button.remove()
                         const fields = document.querySelector(".fields");

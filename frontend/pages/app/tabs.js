@@ -32,7 +32,7 @@ completed_btn.addEventListener("click", async () => {
 });
 
 async function loadInActiveTodos() {
-    const response = await fetchWithAuth("/todos/inactive_todos", {
+    const response = await fetchWithAuth("/todos/inactive", {
         method: "GET",
     });
 
@@ -41,7 +41,7 @@ async function loadInActiveTodos() {
     
     let todo_item_html = "";
 
-    if (response?.ok) {
+    if (response.status === 200) {
         if (inactive_todos_list.length === 0) {
             todosContainer.innerHTML = `<h3 class="no-todos-msg">No active todos. Add some!</h3>`;
             return;
@@ -59,8 +59,8 @@ async function loadInActiveTodos() {
                     <h3 class="todo-title"><del>${todo.title}</del></h3>
                 </div>
                 <div class="action-btn">
-                    <button class="edit-todo-btn"><img src="/static/static/edit.svg" alt="Edit"></button>
-                    <button class="delete-todo-btn"><img src="/static/static/trash.svg" alt="Delete"></button>
+                    <button class="edit-todo-btn"><img src="/static/assets/edit.svg" alt="Edit"></button>
+                    <button class="delete-todo-btn"><img src="/static/assets/trash.svg" alt="Delete"></button>
                 </div>
             </div>`;
         });

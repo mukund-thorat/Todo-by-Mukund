@@ -1,5 +1,5 @@
 FROM python:3.13
-LABEL authors="Mukund Thorat"
+LABEL author="Mukund Thorat"
 
 WORKDIR "/app"
 

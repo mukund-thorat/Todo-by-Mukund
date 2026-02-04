@@ -27,7 +27,7 @@ router.include_router(pass_recovery_router)
 
 @router.post("/login", status_code=HTTP_202_ACCEPTED, response_model=Token)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def login(_request: Request, response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncIOMotorDatabase = Depends(get_db)):
+async def login(request: Request, response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncIOMotorDatabase = Depends(get_db)):
     if form_data.username is None or form_data.password is None:
         raise ValidationError("Email or password is required")
 
@@ -41,41 +41,41 @@ async def login(_request: Request, response: Response, form_data: Annotated[OAut
 
 @router.get("/refresh", status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_regenerator(_request: Request, response: Response, user: UserSchema = Depends(get_current_user_refresh_token), db: AsyncIOMotorDatabase = Depends(get_db)):
-    return tokens_generator(response, user, db)
+async def token_regenerator(request: Request, response: Response, user: UserSchema = Depends(get_current_user_refresh_token), db: AsyncIOMotorDatabase = Depends(get_db)):
+    return await tokens_generator(response, user, db)
 
 
 @router.get("/logout", status_code=HTTP_200_OK, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def logout(_request: Request, response: Response):
+async def logout(request: Request, response: Response):
     response.delete_cookie(key="refresh_token")
     return ResponseModel(code=ResponseCode.ACK, message="Successfully Logged Out")
 
 
 @router.post("/register", status_code=HTTP_202_ACCEPTED, response_model=ResponseModel)
 @limiter.limit(f'{RATE_LIMIT}/minute')
-async def register_user(_request: Request, signup_data: SignUpModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def register_user(request: Request, signup_data: SignUpModel, db: AsyncIOMotorDatabase = Depends(get_db)):
     await store_pend_user(signup_data, db)
     return ResponseModel(code=ResponseCode.CREATED, message="Successfully Registered")
 
 
 @router.post("/otp/request", status_code=HTTP_201_CREATED, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_request(_request: Request, email: EmailStr):
+async def otp_request(request: Request, email: EmailStr):
     OTPManager().send_otp(email, purpose=OTPPurpose.LOGIN)
     return ResponseModel(code=ResponseCode.CREATED, message="Successfully sent OTP to the email")
 
 
 @router.post("/otp/verify", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_verifier(_request: Request, payload: LoginOTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def otp_verifier(request: Request, payload: LoginOTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
     await OTPManager().verify_otp(payload.email, payload.otp, purpose=OTPPurpose.LOGIN)
-    token = login_verification(payload.email, payload.avatar, db)
+    token = await login_verification(payload.email, payload.avatar, db)
     return {"loginToken": token, "tokenType": "bearer"}
 
 
 @router.post("/token_login", status_code=HTTP_202_ACCEPTED, response_model=Token)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_login(_request: Request, response: Response, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def token_login(request: Request, response: Response, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
     await set_user_timestamp(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
     return await tokens_generator(response, user, db)

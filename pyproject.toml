@@ -1,7 +1,10 @@
 [project]
-name = "todoapp"
+name = "todo by mukund"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI-based Todo application with user authentication and MongoDB integration."
+authors = [
+    { name = "Mukund Thorat", email = "mukundthorat.official@gmail.com" },
+]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
