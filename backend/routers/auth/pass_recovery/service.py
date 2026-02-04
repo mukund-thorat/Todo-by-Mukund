@@ -9,11 +9,11 @@ from backend.utils.security import create_access_token, get_current_user, get_pa
 
 async def generate_recovery_token(email: EmailStr) -> str:
     return {
-        "recoveryToken": create_access_token(email=email, user_id="RECOVERY", delta_expires=timedelta(minutes=5)),
-        "tokenType": "bearer"
+        "recovery_token": create_access_token(email=email, user_id="RECOVERY", delta_expires=timedelta(minutes=5)),
+        "token_type": "bearer"
     }
 
 
-async def change_user_password_by_token(token: str, new_password: str, db: AsyncIOMotorDatabase) -> bool:
+async def change_user_password_by_token(token: str, new_password: str, db: AsyncIOMotorDatabase):
     user = await get_current_user(token=token, db=db)
-    return await set_user_password(user.email, get_password_hash(new_password), db)
+    await set_user_password(user.email, get_password_hash(new_password), db)

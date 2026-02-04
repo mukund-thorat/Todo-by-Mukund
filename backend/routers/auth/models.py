@@ -13,8 +13,8 @@ class UserCredentials(BaseModel):
     password: str
 
 class Token(BaseModel):
-    accessToken: str
-    tokenType: str
+    access_token: str
+    token_type: str
 
 class LoginOTPVerificationModel(BaseModel):
     email: EmailStr

@@ -8,10 +8,10 @@ class ResponseCode(str, Enum):
     DELETED = "Deleted",
     UPDATED = "Updated",
     FETCHED = "Fetched",
-    ACK = "Acknowledge"
+    ACK = "Acknowledged"
 
 
 class ResponseModel(BaseModel):
     code: ResponseCode
     message: str
-    details: Optional[str] = None
+    details: Optional[dict] = None

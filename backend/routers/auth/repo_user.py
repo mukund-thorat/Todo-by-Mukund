@@ -25,7 +25,7 @@ async def fetch_user_by_email(email: EmailStr, db: AsyncIOMotorDatabase) -> User
         user = await db.get_collection(USER_COLL).find_one({"email": email})
     except PyMongoError as pe:
         sv_logger.error(
-            "Failed to fetch user by email",
+            f"Failed to fetch user by email {pe}",
             extra={"collection": USER_COLL, "email": email},
         )
         raise DatabaseError(details={"collection": USER_COLL}) from pe

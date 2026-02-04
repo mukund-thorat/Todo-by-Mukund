@@ -19,7 +19,7 @@ router = APIRouter(prefix="/change_password", tags=["User Password Change"])
 
 @router.post("/verify_password", response_model=ResponseModel, status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_password(_request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def verify_password(request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
     await authenticate_user(credentials=credentials, db=db)
     OTPManager().send_otp(email=credentials.email, purpose=OTPPurpose.PASS_CHANGE)
     return ResponseModel(code=ResponseCode.CREATED, message="OTP sent to the email")
@@ -27,7 +27,7 @@ async def verify_password(_request: Request, credentials: UserCredentials, _: Us
 
 @router.post("/otp/verify", status_code=HTTP_200_OK, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_otp(_request: Request, payload: PasswordChangeModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def verify_otp(request: Request, payload: PasswordChangeModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
     await OTPManager().verify_otp(user.email, payload.otp, purpose=OTPPurpose.PASS_CHANGE)
     await set_user_password(user.email, get_password_hash(payload.newPassword), db)
     return ResponseModel(code=ResponseCode.UPDATED, message="Password Changed successfully!", details={"email": user.email})

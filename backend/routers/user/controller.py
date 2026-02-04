@@ -14,5 +14,5 @@ router.include_router(delete_account_router)
 
 @router.get("/email", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def get_user_email(_request: Request, user: UserSchema = Depends(get_current_user)):
+async def get_user_email(request: Request, user: UserSchema = Depends(get_current_user)):
     return {"email": user.email}

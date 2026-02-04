@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
 
         const result = await response.json();
-        if (response.ok || result.status === "SUCCESS") {
+        if (response.ok || result.code === "Created") {
             const otp_msg = document.getElementById("otp-info")
             otp_msg.innerHTML = `Successfully sent OTP to ${email}`;
             const otp_form = document.getElementById("otp-form");

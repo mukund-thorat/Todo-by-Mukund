@@ -22,7 +22,7 @@ loginForm.addEventListener("submit", async (e) => {
     const result = await response.json();
     console.log(response);
     console.log(result);
-    if (response.ok && result) {
+    if (response.status === 202 && result) {
         if (!result['access_token']) {
             const submitBtn = document.getElementById("submit-btn");
             submitBtn.insertAdjacentHTML(
@@ -38,7 +38,7 @@ loginForm.addEventListener("submit", async (e) => {
         const submitBtn = document.getElementById("submit-btn");
         submitBtn.insertAdjacentHTML(
             "beforebegin",
-            error_widget("Login failed: " + (result.detail || "Unknown error"))
+            error_widget("Login failed: " + (result.message || "Unknown error"))
         );
     }
 })

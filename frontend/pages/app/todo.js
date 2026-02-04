@@ -10,14 +10,14 @@ document.addEventListener("DOMContentLoaded", async (e) => {
 })
 
 export async function loadTodos() {
-    const response = await fetchWithAuth("/todos/active_todos", {
+    const response = await fetchWithAuth("/todos/active", {
         method: "GET",
     });
 
     todos_list = await response.json();
     let todo_item_html = "";
 
-    if (response?.ok) {
+    if (response.status === 200) {
         if (todos_list.length === 0) {
             todosContainer.innerHTML = `<h3 class="no-todos-msg">No active todos. Add some!</h3>`;
             return;
@@ -35,8 +35,8 @@ export async function loadTodos() {
         <h3 class="todo-title" contenteditable="false">${todo.title}</h3>
     </div>
     <div class="action-btn">
-        <button class="edit-todo-btn"><img src="/static/static/edit.svg" alt="Edit"></button>
-        <button class="delete-todo-btn"><img src="/static/static/trash.svg" alt="Delete"></button>
+        <button class="edit-todo-btn"><img src="/static/assets/edit.svg" alt="Edit"></button>
+        <button class="delete-todo-btn"><img src="/static/assets/trash.svg" alt="Delete"></button>
     </div>
 </div>`;
 
@@ -57,11 +57,11 @@ todosContainer.addEventListener("click", async (e) => {
 });
 
 async function delete_todo(id) {
-    const response = await fetchWithAuth(`/todos/delete/${id}`, {
+    const response = await fetchWithAuth(`/todos/remove/${id}`, {
         method: "DELETE",
     });
 
-    if (response.ok) {
+    if (response.status === 200) {
         document.querySelector(`.todo-item[data-id="${id}"]`).remove();
 
         if (currentTab === "active") {
@@ -130,7 +130,7 @@ async function update_title(id, updated_title) {
         method: "PUT",
     });
 
-    if (response.ok) {
+    if (response.status === 200) {
         let todo;
         if (currentTab === "active") {
             todo = todos_list.find(t => t.id === id);
@@ -142,11 +142,11 @@ async function update_title(id, updated_title) {
 }
 
 async function todo_marker(id, mark) {
-    const response = await fetchWithAuth(`/todos/todo_marker/${id}?mark=${mark}`, {
+    const response = await fetchWithAuth(`/todos/update_status/${id}?status=${mark}`, {
         method: "PUT",
     });
 
-    if (response.ok) {
+    if (response.status === 200) {
         document.querySelector(`.todo-item[data-id="${id}"]`).remove();
         if (currentTab === "active") {
             todos_list = todos_list.filter(todo => todo.id !== id);
