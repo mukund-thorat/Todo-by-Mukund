@@ -1,25 +1,25 @@
 from fastapi import APIRouter, Request, Depends, Response
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 
-from backend.data.core import get_db
-from backend.data.schemas import UserSchema
-from backend.routers.auth.models import UserCredentials
-from backend.routers.auth.service import authenticate_user
-from backend.routers.user.delete_account.models import OTPVerificationModel
-from backend.routers.user.delete_account.service import remove_user
-from backend.utils.const import RATE_LIMIT
-from backend.utils.otp_manager import OTPManager, OTPPurpose
-from backend.utils.rate_limiting import limiter
-from backend.utils.response_model import ResponseModel, ResponseCode
-from backend.utils.security import get_current_user
+from data.core import get_db
+from data.schemas import User
+from routers.auth.models import UserCredentials
+from routers.auth.service import authenticate_user
+from routers.user.delete_account.models import OTPVerificationModel
+from routers.user.delete_account.service import remove_user
+from utils.const import RATE_LIMIT
+from utils.otp_manager import OTPManager, OTPPurpose
+from utils.rate_limiting import limiter
+from utils.response_model import ResponseModel, ResponseCode
+from utils.security import get_current_user
 
 router = APIRouter(prefix="/delete_account", tags=["user_delete_account"])
 
 
 @router.post("/verify_password", response_model=ResponseModel, status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_password(request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def verify_password(request: Request, credentials: UserCredentials, _: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     print("before auth")
     await authenticate_user(credentials=credentials, db=db)
     print("after auth")
@@ -28,7 +28,7 @@ async def verify_password(request: Request, credentials: UserCredentials, _: Use
 
 @router.post("/otp/verify", status_code=HTTP_200_OK, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_otp(request: Request, response: Response, payload: OTPVerificationModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def verify_otp(request: Request, response: Response, payload: OTPVerificationModel, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     response.delete_cookie(key="refresh_token")
     await OTPManager().verify_otp(user.email, payload.otp, purpose=OTPPurpose.DEL_ACC)
     await remove_user(email=user.email, db=db)

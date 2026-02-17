@@ -1,6 +1,4 @@
 import uuid
-from contextlib import asynccontextmanager
-
 import os
 
 from fastapi import FastAPI, Request
@@ -8,21 +6,14 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
 
-from .data.core import connect_to_db, close_db
-from .routers.todos.controller import router as todo_router
-from .routers.auth.controller import router as auth_router
-from .routers.user.controller import router as user_router
-from .routers.web.controller import router as web_router
-from .utils.errors import AppError
+from routers.todos.controller import router as todo_router
+from routers.auth.controller import router as auth_router
+from routers.user.controller import router as user_router
+from routers.web.controller import router as web_router
+from utils.errors import AppError
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    await connect_to_db()
-    yield
-    await close_db()
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 app.add_middleware(
     SessionMiddleware,
@@ -55,7 +46,7 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 app.include_router(router=todo_router)
 app.include_router(router=auth_router)
 app.include_router(router=user_router)

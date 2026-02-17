@@ -1,22 +1,22 @@
 from fastapi import Depends, Request, Response
 from jwt import ExpiredSignatureError, InvalidTokenError
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse
 
-from backend.data.core import get_db
-from backend.routers.auth.repo_user import fetch_user_by_refresh_token_and_user_id
-from backend.utils.security import decode_token
-from backend.utils.template import templates
+from data.core import get_db
+from routers.auth.repo_user import fetch_user_by_refresh_token_and_user_id
+from utils.security import decode_token
+from utils.template import templates
 
 
-async def render_or_redirect(request: Request, template_name: str, db: AsyncIOMotorDatabase) -> Response:
+async def render_or_redirect(request: Request, template_name: str, db: AsyncSession) -> Response:
     redirect = await _is_user_already_logged_in(request.cookies.get("refresh_token"), db)
     if redirect:
         return redirect
     return templates.TemplateResponse(template_name, {"request": request})
 
 
-async def _is_user_already_logged_in(refresh_token: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def _is_user_already_logged_in(refresh_token: str, db: AsyncSession = Depends(get_db)):
     if not refresh_token:
         return None
     try:

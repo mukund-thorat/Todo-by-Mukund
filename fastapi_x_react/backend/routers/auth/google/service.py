@@ -1,16 +1,16 @@
 import json
 from urllib.parse import urlencode
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 
-from backend.data.schemas import AuthServiceProvider
-from backend.routers.auth.google.repo import fetch_user_by_email
-from backend.routers.auth.models import SignUpModel
-from backend.routers.auth.service import tokens_generator, store_pend_user
+from data.schemas import AuthServiceProvider
+from routers.auth.google.repo import fetch_user_by_email
+from routers.auth.models import SignUpModel
+from routers.auth.service import tokens_generator, store_pend_user
 
 
-async def login_or_create_user(first_name: str, last_name: str, email: str, db: AsyncIOMotorDatabase):
+async def login_or_create_user(first_name: str, last_name: str, email: str, db: AsyncSession):
     user = await fetch_user_by_email(email, db)
     if user:
         temp_response = Response()
