@@ -9,11 +9,17 @@ class RequestIdFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         if not hasattr(record, "request_id"):
             record.request_id = "-"
+        if not hasattr(record, "operation"):
+            record.operation = "-"
+        if not hasattr(record, "entity"):
+            record.entity = "-"
+        if not hasattr(record, "identifier"):
+            record.identifier = "-"
         return True
 
 
 formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(request_id)s - %(message)s"
+    "%(asctime)s - %(name)s - %(levelname)s - %(request_id)s - %(operation)s - %(entity)s - %(identifier)s - %(message)s"
 )
 
 sv_logger = logging.getLogger("sv_logger")

@@ -4,16 +4,17 @@ from datetime import timedelta, datetime
 import jwt
 from fastapi import Depends, HTTPException, Cookie
 from fastapi.security import OAuth2PasswordBearer
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from passlib.context import CryptContext
 from pydantic import EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from backend.data.core import get_db
-from backend.data.schemas import UserSchema
-from backend.routers.auth.repo_user import fetch_user_by_email, fetch_user_by_refresh_token_and_user_id
-from backend.utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
-from backend.utils.errors import NotFoundError, ValidationError
+from data.core import get_db
+from routers.auth.repo_user import fetch_user_by_email, fetch_user_by_refresh_token_and_user_id
+from utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
+from utils.errors import NotFoundError, ValidationError
+from utils.pydantic_cm import UserModel
+from utils.sql_pydantic_parser import user_2_p
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -48,7 +49,7 @@ def create_refresh_token(user_id: str):
     return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
 
 
-async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotorDatabase = Depends(get_db)) -> UserSchema:
+async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncSession = Depends(get_db)) -> UserModel:
     try:
         payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
         email: str = payload.get("email")
@@ -61,7 +62,7 @@ async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotor
         if not user:
             raise NotFoundError("User not found", details={"email": user.email})
 
-        return user
+        return user_2_p(user)
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
@@ -69,7 +70,7 @@ async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotor
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Could not validate credentials.")
 
 
-async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)) -> UserSchema:
+async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: AsyncSession = Depends(get_db)) -> UserModel:
     if not refresh_token:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -84,7 +85,7 @@ async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: 
         if not user:
             raise NotFoundError("User not found", details={"email": user.email})
 
-        return user
+        return user_2_p(user)
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Session expired")
     except jwt.InvalidTokenError:

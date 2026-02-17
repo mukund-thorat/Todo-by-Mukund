@@ -2,11 +2,11 @@ import os
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Request, HTTPException, Depends
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from backend.data.core import get_db
-from backend.routers.auth.google.service import login_or_create_user
+from data.core import get_db
+from routers.auth.google.service import login_or_create_user
 
 
 router = APIRouter(prefix="/google", tags=["google_auth"])
@@ -27,7 +27,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/callback", name="google_callback")
-async def google_callback(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     token = await oauth.google.authorize_access_token(request)
     user_info = token.get("userinfo")
 

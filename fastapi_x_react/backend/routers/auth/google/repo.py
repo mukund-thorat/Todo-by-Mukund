@@ -1,18 +1,17 @@
 from typing import Optional
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import EmailStr
-from pymongo.errors import PyMongoError
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.data.schemas import UserSchema
+from data.schemas import User
 
-USER_COLL = "users"
-
-async def fetch_user_by_email(email: EmailStr, db: AsyncIOMotorDatabase) -> Optional[UserSchema]:
+async def fetch_user_by_email(email: EmailStr, db: AsyncSession) -> Optional[User]:
     try:
-        user = await db.get_collection(USER_COLL).find_one({"email": email})
-    except PyMongoError:
+        user = await db.execute(select(User).where(User.email == email))
+    except SQLAlchemyError:
         return None
     if user:
-        return UserSchema(**user)
+        return user.scalar_one_or_none()
     return None

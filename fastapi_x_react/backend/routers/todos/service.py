@@ -1,17 +1,17 @@
 import uuid
 from datetime import datetime
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.data.schemas import TodoSchema
-from backend.routers.todos.models import TodoModel
-from backend.routers.todos.repo import insert_todo
+from data.schemas import Todo
+from routers.todos.models import TodoModel
+from routers.todos.repo import insert_todo
 
 
-async def add_new_todo(user_id: str, todo_model: TodoModel, db: AsyncIOMotorDatabase) -> TodoSchema:
-    todo_schema = TodoSchema(
+async def add_new_todo(user_id: uuid.UUID, todo_model: TodoModel, db: AsyncSession) -> Todo:
+    todo_schema = Todo(
         userId=user_id,
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         title=todo_model.title,
         isActive=todo_model.isActive,
         priority=todo_model.priority,

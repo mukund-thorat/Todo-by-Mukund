@@ -9,7 +9,7 @@ from smtplib import SMTPException
 from fastapi import HTTPException
 from starlette.status import HTTP_408_REQUEST_TIMEOUT
 
-from backend.utils.errors import ValidationError, NotFoundError
+from utils.errors import ValidationError, NotFoundError
 
 class OTPPurpose(str, Enum):
     LOGIN = "LOGIN",

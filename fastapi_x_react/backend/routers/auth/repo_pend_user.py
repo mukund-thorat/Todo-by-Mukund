@@ -1,42 +1,68 @@
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import EmailStr
-from pymongo.errors import PyMongoError
+from typing import cast
 
-from backend.data.schemas import PendingUserSchema, UserSchema
-from backend.utils.errors import DatabaseError
-from backend.utils.sv_logger import sv_logger
+from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-PEND_USER = "pending_users"
+from data.schemas import PendingUser
+from utils.errors import DatabaseError, NotFoundError
+from utils.sv_logger import sv_logger
 
-async def insert_pend_user(pend_user_schema: PendingUserSchema, db: AsyncIOMotorDatabase):
+async def insert_pend_user(pend_user: PendingUser, db: AsyncSession):
     try:
-        await db.get_collection(PEND_USER).insert_one(pend_user_schema.model_dump())
-    except PyMongoError as pe:
+        db.add(pend_user)
+        await db.commit()
+        await db.refresh(pend_user)
+    except SQLAlchemyError as pe:
+        await db.rollback()
         sv_logger.error(
-            "Failed to insert pending user",
-            extra={"collection": PEND_USER, "email": pend_user_schema.email},
+            f"Failed to insert pending user: {pe}",
+            extra={"email": pend_user.email},
         )
-        raise DatabaseError(details={"email", pend_user_schema.email}) from pe
+        raise DatabaseError(details={"email": pend_user.email}) from pe
 
-async def delete_pend_user(email: EmailStr, db: AsyncIOMotorDatabase):
+async def delete_pend_user(email: str, db: AsyncSession):
     try:
-        await db.get_collection(PEND_USER).delete_one({"email": email})
-    except PyMongoError as pe:
+        result = cast(
+            CursorResult,
+            await db.execute(delete(PendingUser).where(PendingUser.email == email)),
+        )
+
+        if result.rowcount == 0:
+            await db.rollback()
+            sv_logger.warning(
+                "Delete skipped; user isn't in pending users",
+                extra={"operation": "delete", "entity": "users", "identifier": email},
+            )
+            raise NotFoundError("User not found", details={"email": email})
+        await db.commit()
+    except SQLAlchemyError as pe:
         sv_logger.error(
             "Failed to remove pending user",
-            extra={"collection": PEND_USER, "email": email},
+            extra={"email": email},
         )
         raise DatabaseError(details={"email": email}) from pe
 
-async def fetch_pend_user(email: EmailStr, db: AsyncIOMotorDatabase) -> UserSchema | None:
+async def fetch_pend_user(email: str, db: AsyncSession) -> PendingUser:
     try:
-        result = await db.get_collection(PEND_USER).find_one({"email": email})
-    except PyMongoError as pe:
+        result = await db.execute(select(PendingUser).where(PendingUser.email == email))
+        pending_user = result.scalar_one_or_none()
+    except SQLAlchemyError as se:
         sv_logger.error(
-            "Failed to fetch pending user",
-            extra={"collection": PEND_USER, "email": email},
+            "Failed to fetch user by email",
+            extra={"operation": "fetch", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"email": email}) from pe
-    if result:
-        return PendingUserSchema(**result)
-    return None
+        raise DatabaseError(details={"table": "users"}) from se
+    if not pending_user:
+        sv_logger.warning(
+            "Pending User not found by email",
+            extra={"operation": "fetch", "entity": "users", "identifier": email},
+        )
+        raise NotFoundError("Pending User not found", details={"email": email})
+    sv_logger.info(
+        "Pending User fetched by email",
+        extra={"operation": "fetch", "entity": "users", "identifier": email},
+    )
+    return pending_user

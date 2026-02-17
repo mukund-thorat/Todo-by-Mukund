@@ -1,105 +1,236 @@
 from datetime import datetime
+from typing import cast
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import EmailStr
-from pymongo.errors import PyMongoError
+from sqlalchemy import and_, delete, select, update
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.data.schemas import UserSchema
-from backend.utils.errors import DatabaseError, NotFoundError
-from backend.utils.sv_logger import sv_logger
+from data.schemas import User, PendingUser
+from utils.errors import DatabaseError, NotFoundError
+from utils.sv_logger import sv_logger
 
-USER_COLL = "users"
 
-async def insert_user(user_schema: UserSchema, db: AsyncIOMotorDatabase):
+async def insert_user(pending_user: PendingUser, avatar: str, db: AsyncSession):
+    email = pending_user.email
     try:
-        await db.get_collection(USER_COLL).insert_one(user_schema.model_dump())
-    except PyMongoError as pe:
+        user = User(
+            firstName=pending_user.firstName,
+            lastName=pending_user.lastName,
+            email=email,
+            avatar=avatar,
+            passwordHash=pending_user.passwordHash,
+            refreshToken=None,
+            createdAt=datetime.now(),
+            deletedAt=None,
+            lastLogIn=None,
+            authServiceProvider=pending_user.authServiceProvider
+        )
+
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        sv_logger.info(
+            "User inserted successfully",
+            extra={"operation": "insert", "entity": "users", "identifier": email},
+        )
+    except SQLAlchemyError as se:
+        await db.rollback()
         sv_logger.error(
             "Failed to insert user",
-            extra={"collection": USER_COLL, "email": user_schema.email},
+            extra={"operation": "insert", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL}) from pe
+        raise DatabaseError(details={"table": "users", "email": email}) from se
 
-async def fetch_user_by_email(email: EmailStr, db: AsyncIOMotorDatabase) -> UserSchema:
+
+async def fetch_user_by_email(email: str, db: AsyncSession) -> User:
     try:
-        user = await db.get_collection(USER_COLL).find_one({"email": email})
-    except PyMongoError as pe:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+    except SQLAlchemyError as se:
         sv_logger.error(
-            f"Failed to fetch user by email {pe}",
-            extra={"collection": USER_COLL, "email": email},
+            "Failed to fetch user by email",
+            extra={"operation": "fetch", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL}) from pe
-    if user:
-        return UserSchema(**user)
-    raise NotFoundError("User not found", details={"email": email})
+        raise DatabaseError(details={"table": "users"}) from se
+    if not user:
+        sv_logger.warning(
+            "User not found by email",
+            extra={"operation": "fetch", "entity": "users", "identifier": email},
+        )
+        raise NotFoundError("User not found", details={"email": email})
+    sv_logger.info(
+        "User fetched by email",
+        extra={"operation": "fetch", "entity": "users", "identifier": email},
+    )
+    return user
 
-async def delete_user(email: EmailStr, db: AsyncIOMotorDatabase):
+
+async def delete_user(email: str, db: AsyncSession):
     try:
-        result = await db.get_collection(USER_COLL).delete_one({"email": email})
-        if result.deleted_count == 0:
+        result = cast(
+            CursorResult,
+            await db.execute(delete(User).where(User.email == email)),
+        )
+        if result.rowcount == 0:
+            await db.rollback()
+            sv_logger.warning(
+                "Delete skipped; user not found",
+                extra={"operation": "delete", "entity": "users", "identifier": email},
+            )
             raise NotFoundError("User not found", details={"email": email})
-        return True
-    except Exception as e:
+        await db.commit()
+        sv_logger.info(
+            "User deleted successfully",
+            extra={"operation": "delete", "entity": "users", "identifier": email},
+        )
+    except SQLAlchemyError as e:
+        await db.rollback()
         sv_logger.error(
             "Failed to delete user",
-            extra={"collection": USER_COLL, "email": email},
+            extra={"operation": "delete", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL, "email": email}) from e
+        raise DatabaseError(details={"table": "users"}) from e
 
-async def set_user_password(email: EmailStr, new_hashed_password: str, db: AsyncIOMotorDatabase):
+
+async def set_user_password(email: str, new_hashed_password: str, db: AsyncSession):
     try:
-        response = await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {"passwordHash": new_hashed_password}})
-    except PyMongoError as pe:
+        result = cast(
+            CursorResult,
+            await db.execute(
+                update(User).where(User.email == email).values(passwordHash=new_hashed_password)
+            ),
+        )
+        if result.rowcount == 0:
+            await db.rollback()
+            sv_logger.warning(
+                "Password update skipped; user not found",
+                extra={"operation": "update", "entity": "users", "identifier": email},
+            )
+            raise NotFoundError("User not found", details={"email": email})
+        await db.commit()
+        sv_logger.info(
+            "User password updated successfully",
+            extra={"operation": "update", "entity": "users", "identifier": email},
+        )
+    except SQLAlchemyError as se:
+        await db.rollback()
         sv_logger.error(
             "Failed to update user password",
-            extra={"collection": USER_COLL, "email": email},
+            extra={"operation": "update", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL, "email": email}) from pe
-    if response.modified_count == 0:
-        raise NotFoundError("User not found", details={"email": email})
+        raise DatabaseError(details={"table": "users", "email": email}) from se
 
-async def set_user_timestamp(email: EmailStr, date_time_field: str, new_date_time: datetime, db: AsyncIOMotorDatabase):
+
+async def set_user_timestamp(email: str, date_time_field: str, new_date_time: datetime, db: AsyncSession):
     try:
-        await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {date_time_field: new_date_time}})
-    except PyMongoError as pe:
+        result = cast(
+            CursorResult,
+            await db.execute(
+                update(User).where(User.email == email).values(**{date_time_field: new_date_time})
+            ),
+        )
+        if result.rowcount == 0:
+            await db.rollback()
+            sv_logger.warning(
+                "Timestamp update skipped; user not found",
+                extra={"operation": "update", "entity": "users", "identifier": email},
+            )
+            raise NotFoundError("User not found", details={"email": email})
+        await db.commit()
+        sv_logger.info(
+            "User timestamp updated successfully",
+            extra={"operation": "update", "entity": "users", "identifier": email},
+        )
+    except SQLAlchemyError as se:
+        await db.rollback()
         sv_logger.error(
             "Failed to update user records",
-            extra={"collection": USER_COLL, "email": email, "field": date_time_field},
+            extra={"operation": "update", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL, "email": email}) from pe
+        raise DatabaseError(details={"table": "users", "email": email}) from se
 
-async def set_refresh_token(email: EmailStr, new_refresh_token: str, db: AsyncIOMotorDatabase):
+
+async def set_refresh_token(email: str, new_refresh_token: str, db: AsyncSession):
     try:
-        await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {"refreshToken": new_refresh_token}})
-    except PyMongoError as pe:
+        result = cast(
+            CursorResult,
+            await db.execute(
+                update(User).where(User.email == email).values(refreshToken=new_refresh_token)
+            ),
+        )
+        if result.rowcount == 0:
+            await db.rollback()
+            sv_logger.warning(
+                "Refresh token update skipped; user not found",
+                extra={"operation": "update", "entity": "users", "identifier": email},
+            )
+            raise NotFoundError("User not found", details={"email": email})
+        await db.commit()
+        sv_logger.info(
+            "Refresh token updated successfully",
+            extra={"operation": "update", "entity": "users", "identifier": email},
+        )
+    except SQLAlchemyError as se:
+        await db.rollback()
         sv_logger.error(
             "Failed to update refresh token",
-            extra={"collection": USER_COLL, "email": email},
+            extra={"operation": "update", "entity": "users", "identifier": email},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL, "email": email}) from pe
+        raise DatabaseError(details={"table": "users", "email": email}) from se
 
-async def fetch_user_by_refresh_token(refresh_token: str, db: AsyncIOMotorDatabase) -> UserSchema:
+
+async def fetch_user_by_refresh_token(refresh_token: str, db: AsyncSession) -> User:
     try:
-        user = await db.get_collection(USER_COLL).find_one({"refreshToken": refresh_token})
-    except PyMongoError as pe:
+        result = await db.execute(select(User).where(User.refreshToken == refresh_token))
+        user = result.scalar_one_or_none()
+    except SQLAlchemyError as se:
         sv_logger.error(
             "Failed to fetch user by refresh token",
-            extra={"collection": USER_COLL},
+            extra={"operation": "fetch", "entity": "users", "identifier": "refresh_token"},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL}) from pe
+        raise DatabaseError(details={"table": "users"}) from se
     if user:
-        return UserSchema(**user)
+        sv_logger.info(
+            "User fetched by refresh token",
+            extra={"operation": "fetch", "entity": "users", "identifier": "refresh_token"},
+        )
+        return user
+    sv_logger.warning(
+        "User not found by refresh token",
+        extra={"operation": "fetch", "entity": "users", "identifier": "refresh_token"},
+    )
     raise NotFoundError("User not found")
 
-async def fetch_user_by_refresh_token_and_user_id(user_id: str, refresh_token: str, db: AsyncIOMotorDatabase) -> UserSchema:
+
+async def fetch_user_by_refresh_token_and_user_id(user_id: str, refresh_token: str, db: AsyncSession) -> User:
     try:
-        user = await db.get_collection(USER_COLL).find_one({"refreshToken": refresh_token, "userId": user_id})
-    except PyMongoError as pe:
+        result = await db.execute(
+            select(User).where(and_(User.refreshToken == refresh_token, User.id == user_id))
+        )
+        user = result.scalar_one_or_none()
+    except SQLAlchemyError as se:
         sv_logger.error(
             "Failed to fetch user by refresh token and user id",
-            extra={"collection": USER_COLL, "user_id": user_id},
+            extra={"operation": "fetch", "entity": "users", "identifier": user_id},
+            exc_info=True,
         )
-        raise DatabaseError(details={"collection": USER_COLL, "user_id": user_id}) from pe
+        raise DatabaseError(details={"table": "users", "user_id": user_id}) from se
     if user:
-        return UserSchema(**user)
+        sv_logger.info(
+            "User fetched by refresh token and user id",
+            extra={"operation": "fetch", "entity": "users", "identifier": user_id},
+        )
+        return user
+    sv_logger.warning(
+        "User not found by refresh token and user id",
+        extra={"operation": "fetch", "entity": "users", "identifier": user_id},
+    )
     raise NotFoundError("User not found", details={"userId": user_id})

@@ -1,56 +1,37 @@
 import os
 
-import certifi
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClient
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-from backend.utils.errors import DatabaseError
-from backend.utils.sv_logger import sv_logger
+load_dotenv(override=True)
 
-load_dotenv()
+pg_uri = os.getenv("PG_URI")
+if not pg_uri:
+    raise RuntimeError("PG_URI is not set in environment variables.")
 
-_client: AsyncIOMotorClient | None = None
-_db: AsyncIOMotorDatabase | None = None
+try:
+    make_url(pg_uri)
+except Exception as exc:
+    raise RuntimeError(
+        "PG_URI is invalid. If your database password contains special characters like '@', "
+        "URL-encode them (e.g. '@' -> '%40')."
+    ) from exc
 
+engine = create_async_engine(pg_uri)
 
-def _get_mongo_uri() -> str:
-    mongo_uri = os.getenv("MONGO_URI")
-    if not mongo_uri:
-        raise DatabaseError("MONGO_URI is not configured")
-    return mongo_uri
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    expire_on_commit=False,
+    autoflush=False,
+    class_=AsyncSession,
+    autocommit=False,
+)
 
-
-def _get_db_name() -> str:
-    return os.getenv("MONGO_DB_NAME", "todobymukund")
-
-
-async def connect_to_db() -> None:
-    global _client, _db
-    if _client is not None and _db is not None:
-        return
-
-    try:
-        _client = AsyncIOMotorClient(
-            _get_mongo_uri(),
-            tls=True,
-            tlsCAFile=certifi.where(),
-        )
-        _db = _client.get_database(_get_db_name())
-    except Exception as exc:
-        sv_logger.error("Failed to connect to MongoDB")
-        raise DatabaseError("Failed to connect to data") from exc
+Base = declarative_base()
 
 
-async def close_db() -> None:
-    global _client, _db
-    if _client is None:
-        return
-    _client.close()
-    _client = None
-    _db = None
-
-
-async def get_db() -> AsyncIOMotorDatabase:
-    if _db is None:
-        raise DatabaseError("Database not initialized")
-    return _db
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
