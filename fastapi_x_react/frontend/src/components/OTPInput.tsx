@@ -1,4 +1,4 @@
-import '../css/otp.css'
+import '../assets/css/otp.css'
 
 function OTPInput() {
     return (

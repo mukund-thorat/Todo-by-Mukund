@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from routers.todos.controller import router as todo_router
 from routers.auth.controller import router as auth_router
@@ -12,6 +13,11 @@ from routers.user.controller import router as user_router
 from routers.web.controller import router as web_router
 from utils.errors import AppError
 
+
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 app = FastAPI()
 
@@ -21,6 +27,13 @@ app.add_middleware(
     same_site="lax",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],   # allow all methods (POST, GET, OPTIONS etc.)
+    allow_headers=["*"],   # allow all headers
+)
 
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):
