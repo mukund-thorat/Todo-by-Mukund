@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import cast
 
@@ -15,6 +16,7 @@ async def insert_user(pending_user: PendingUser, avatar: str, db: AsyncSession):
     email = pending_user.email
     try:
         user = User(
+            id=uuid.uuid4(),
             firstName=pending_user.firstName,
             lastName=pending_user.lastName,
             email=email,

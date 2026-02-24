@@ -3,6 +3,7 @@ import Avatar from "../components/Avatar.tsx";
 import Button from "../components/Button.tsx";
 import {useState} from "react";
 
+
 function AvatarPage(){
     const avatars = ["cat", "ishowmeat", "mrbean", "xavier", "gentle_man", "dora"];
 

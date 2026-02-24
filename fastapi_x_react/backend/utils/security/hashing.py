@@ -23,3 +23,11 @@ def get_password_hash(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt_context.verify(plain_password, hashed_password)
+
+
+if __name__ == "__main__":
+    # Example usage
+    password = "my_secure_password"
+    salt, hashed = generate_hash(password)
+    print(f"Hashed password: {hashed}")
+    print(f"Password verification: {verify_hash(password, hashed, salt)}")
