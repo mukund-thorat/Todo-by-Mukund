@@ -70,7 +70,7 @@ class OTPManager:
         data = json.loads(payload)
         salt = data["salt"]
         stored_otp_hash = data["otp"]
-
+        print(f"Provided OTP: {otp}, Stored OTP Hash: {stored_otp_hash}, Salt: {salt}")
         if not verify_hash(otp, stored_otp_hash, salt):
             raise ValidationError("Wrong OTP")
 

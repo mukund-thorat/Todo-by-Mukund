@@ -4,11 +4,12 @@ from fastapi import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from routers.auth.repo_pend_user import fetch_pend_user, delete_pend_user, insert_pend_user
-from data.schemas import User, PendingUser, AuthServiceProvider
+from data.schemas import PendingUser, AuthServiceProvider, User
 from routers.auth.repo_user import insert_user, fetch_user_by_email, set_refresh_token
 from routers.auth.models import UserCredentials, SignUpModel, Token
 from utils.const import ACCESS_TOKEN_EXPIRE_MINUTES
 from utils.errors import ValidationError, NotFoundError
+from utils.pydantic_cm import UserModel
 from utils.security.hashing import get_password_hash, verify_password
 from utils.security.tokens import create_access_token, create_refresh_token
 
@@ -43,7 +44,7 @@ async def authenticate_user(credentials: UserCredentials, db: AsyncSession) -> U
     return user
 
 
-async def tokens_generator(response: Response, user: User, db: AsyncSession) -> Token:
+async def tokens_generator(response: Response, user: UserModel, db: AsyncSession) -> Token:
     user_id = str(user.id)
     refresh_token = create_refresh_token(user_id=user_id)
     access_token = create_access_token(email=user.email, user_id=user_id, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))

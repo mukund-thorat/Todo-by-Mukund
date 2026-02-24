@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED, HTTP_202_ACCEPTED, HTTP_200_OK
 
 from data.core import get_db
-from data.schemas import User, AuthServiceProvider
+from data.schemas import AuthServiceProvider
 from routers.auth.repo_user import set_user_timestamp
 from routers.auth.models import UserCredentials, SignUpModel, LoginOTPVerificationModel, Token
 from routers.auth.service import authenticate_user, store_pend_user, login_verification, tokens_generator
 from utils.const import RATE_LIMIT
 from utils.errors import ValidationError
+from utils.pydantic_cm import UserModel
 from utils.response_model import ResponseModel, ResponseCode
 from routers.auth.pass_recovery.controller import router as pass_recovery_router
 from routers.auth.google.controller import router as google_router
@@ -42,7 +43,7 @@ async def login(request: Request, response: Response, form_data: Annotated[OAuth
 
 @router.get("/refresh", status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_regenerator(request: Request, response: Response, user: User = Depends(get_current_user_refresh_token), db: AsyncSession = Depends(get_db)):
+async def token_regenerator(request: Request, response: Response, user: UserModel = Depends(get_current_user_refresh_token), db: AsyncSession = Depends(get_db)):
     return await tokens_generator(response, user, db)
 
 
@@ -77,6 +78,11 @@ async def otp_verifier(request: Request, payload: LoginOTPVerificationModel, db:
 
 @router.post("/token_login", status_code=HTTP_202_ACCEPTED, response_model=Token)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_login(request: Request, response: Response, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def token_login(request: Request, response: Response, user: UserModel = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await set_user_timestamp(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
     return await tokens_generator(response, user, db)
+
+@router.get("/me", response_model=ResponseModel)
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def get_current_user_info(request: Request, user: UserModel = Depends(get_current_user)) -> dict:
+    return ResponseModel(code=ResponseCode.ACK, message=str(user.id))

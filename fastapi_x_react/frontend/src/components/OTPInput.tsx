@@ -15,7 +15,7 @@ function OTPInput({otpCallback} : {otpCallback: (otp: string) => void}) {
         }
 
         if (newOtp.every((digit) => digit !== "")) {
-            const fullOtp = otp.join("")
+            const fullOtp = newOtp.join("")
             otpCallback(fullOtp)
         }
     }
