@@ -1,25 +1,45 @@
 import ShadowBox from "../components/ShadowBox.tsx";
-import TextInput from "../components/TextInput.tsx";
-import GAuthButton from "../components/GAuthButton.tsx";
+import Avatar from "../components/Avatar.tsx";
 import Button from "../components/Button.tsx";
-import Divider from "../components/Divider.tsx";
+import {useState} from "react";
 
-function LoginPage(){
+function AvatarPage(){
+    const avatars = ["cat", "ishowmeat", "mrbean", "xavier", "gentle_man", "dora"];
+
+    const [selected, setSelected] = useState<string | null>(null);
+
     return (
         <div className="flex items-center justify-center h-screen">
-            <ShadowBox title="Login">
-                <div className="w-full flex flex-col gap-3">
-                    <TextInput id="email" label="Email" placeholder="Enter your email"/>
-                    <TextInput id="password" type="password" label="Password" placeholder="Enter your password"/>
+            <ShadowBox title="Pick Avatar">
+                <div className="flex flex-wrap items-center justify-center gap-3 overflow-x-auto hide-scrollbar">
+                    {
+                        avatars.map((avatar) => {
+                            return (
+                                <Avatar
+                                    selected={selected}
+                                    name={avatar}
+                                    onClick={() => {
+                                        setSelected(avatar);
+                                    }}
+                                />
+                            )
+                        })
+                    }
                 </div>
-                <Button className="w-full" children="Proceed" />
-                <div className="w-full flex flex-col gap-3">
-                    <Divider label="or login with"/>
-                    <GAuthButton/>
-                </div>
+                <Button
+                    children="Done"
+                    disabled={!selected}
+                    onClick={() => {
+                        console.log(selected);
+                        if (selected != null) {
+                            sessionStorage.setItem("picked_avatar", selected)
+                            window.location.href = "/verify_otp"
+                        }
+                    }}
+                />
             </ShadowBox>
         </div>
     )
 }
 
-export default LoginPage;
+export default AvatarPage;
