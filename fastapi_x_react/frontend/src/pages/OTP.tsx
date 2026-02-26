@@ -13,7 +13,10 @@ async function tokenLogin(token: string) {
         },
         credentials: "include"
     })
-
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Token login failed");
+    }
     return response.json();
 }
 
@@ -30,7 +33,10 @@ function OTPPage(){
                     "Content-Type": "application/json",
                 }
             });
-
+            if (!result.ok) {
+                const errorData = await result.json();
+                throw new Error(errorData.detail || "OTP Request failed");
+            }
             return result.json();
         },
         onSuccess: () => {
@@ -41,11 +47,11 @@ function OTPPage(){
     const tokenMutation = useMutation({
         mutationFn: async (token: string) => tokenLogin(token),
         onSuccess: (data) => {
-            console.log(data);
             sessionStorage.setItem("access_token", data['access_token'])
             window.location.href = "/dashboard";
         }
     })
+
     const verifyMutation = useMutation({
         mutationFn: async () => {
             const email = sessionStorage.getItem("email");
@@ -59,10 +65,19 @@ function OTPPage(){
                     body: JSON.stringify({email, otp: otp.current, avatar})
                 })
 
+                if (!result.ok) {
+                    const errorData = await result.json();
+                    throw new Error(errorData.detail || "OTP verification failed");
+                }
+
                 return await result.json()
             }
         },
-        onSuccess: async (data) => tokenMutation.mutate(data['loginToken'])
+        onSuccess: async (data) => {
+            sessionStorage.removeItem("email")
+            sessionStorage.removeItem("picked_avatar")
+            tokenMutation.mutate(data['loginToken'])
+        }
     })
 
     const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
