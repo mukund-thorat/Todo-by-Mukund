@@ -1,10 +1,18 @@
 import ShadowBox from "../components/ShadowBox.tsx";
 import Avatar from "../components/Avatar.tsx";
 import Button from "../components/Button.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 
 function AvatarPage(){
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const emailFromQuery = params.get("email");
+        if (emailFromQuery) {
+            sessionStorage.setItem("email", emailFromQuery);
+        }
+    }, []);
+
     const avatars = ["cat", "ishowmeat", "mrbean", "xavier", "gentle_man", "dora"];
 
     const [selected, setSelected] = useState<string | null>(null);
@@ -31,7 +39,6 @@ function AvatarPage(){
                     children="Done"
                     disabled={!selected}
                     onClick={() => {
-                        console.log(selected);
                         if (selected != null) {
                             sessionStorage.setItem("picked_avatar", selected)
                             window.location.href = "/verify_otp"

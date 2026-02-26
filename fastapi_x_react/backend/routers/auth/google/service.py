@@ -41,4 +41,4 @@ async def login_or_create_user(first_name: str, last_name: str, email: str, db: 
 
     await store_pend_user(signup_model, AuthServiceProvider.GOOGLE, db)
     query = urlencode({"email": email})
-    return RedirectResponse(f"/pick_avatar?{query}")
+    return RedirectResponse(f"http://localhost:5173/pick_avatar?{query}")
