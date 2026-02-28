@@ -5,6 +5,7 @@ import LoginPage from "./pages/Login.tsx";
 import Avatar from "./pages/Avatar.tsx";
 import OTPPage from "./pages/OTP.tsx";
 import DashboardPage from "./pages/Dashboard.tsx";
+import OAuthCallback from "./pages/OAuthCallback.tsx";
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
         <Route path="/pick_avatar" element={<Avatar />} />
         <Route path="/verify_otp" element={<OTPPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
       </Routes>
   )
 }
