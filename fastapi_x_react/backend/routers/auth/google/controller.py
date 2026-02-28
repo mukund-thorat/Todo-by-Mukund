@@ -1,13 +1,15 @@
 import os
 
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from data.core import get_db
 from routers.auth.google.service import login_or_create_user
-
+from routers.auth.service import tokens_generator
+from utils.pydantic_cm import UserModel
+from utils.security.tokens import get_current_user
 
 router = APIRouter(prefix="/google", tags=["google_auth"])
 
@@ -39,3 +41,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     last_name = user_info.get("family_name")
 
     return await login_or_create_user(email=email, first_name=first_name, last_name=last_name, db=db)
+
+@router.get("/token/login")
+async def token_login(response: Response, db: AsyncSession = Depends(get_db), user: UserModel = Depends(get_current_user)):
+    return await tokens_generator(response, user, db)
