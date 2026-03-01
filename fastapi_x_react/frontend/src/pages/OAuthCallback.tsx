@@ -8,7 +8,7 @@ export default function OAuthCallback(){
         mutationFn: tokenLogin,
         onSuccess: data => {
             console.log(data);
-            sessionStorage.setItem("access_token", data.access_token)
+            localStorage.setItem("access_token", data.access_token)
             window.location.href = "/dashboard"
         },
         onError: error => {
@@ -24,7 +24,6 @@ export default function OAuthCallback(){
         const token = params.get("token");
 
         if (token) {
-            sessionStorage.setItem("access_token", token);
             mutate(token);
         } else{
             navigate("/login");

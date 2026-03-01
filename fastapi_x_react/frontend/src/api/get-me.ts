@@ -1,14 +1,31 @@
-export async function getMe(): Promise<string> {
-    const token = sessionStorage.getItem("access_token");
-    if (!token) throw new Error("You don't have access token");
+import {refreshAccessToken} from "./refresh-token.ts";
 
-    const response = await fetch("http://localhost:8000/auth/me", {
+async function fetchMe(token: string) {
+    return fetch("http://localhost:8000/auth/me", {
         method: "GET",
         headers: {
             Authorization: `Bearer ${token}`
-        }
-    })
+        },
+        credentials: "include"
+    });
+}
 
-    if (!response.ok) throw new Error(response.statusText);
+export async function getMe() {
+    let token = localStorage.getItem("access_token");
+    if (!token) {
+        token = await refreshAccessToken();
+    }
+
+    let response = await fetchMe(token);
+    if (response.status === 401 || response.status === 403) {
+        token = await refreshAccessToken();
+        response = await fetchMe(token);
+    }
+
+    if (!response.ok) {
+        localStorage.removeItem("access_token");
+        throw new Error(response.statusText);
+    }
+
     return await response.json();
 }
