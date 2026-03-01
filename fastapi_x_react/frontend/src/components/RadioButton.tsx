@@ -1,10 +1,36 @@
+import {useEffect, useState} from "react";
+import {useMutation} from "@tanstack/react-query";
+import {setTodoStatus} from "../api/active-todos.ts";
+
 type Priority = 1 | 2 | 3 | 4;
 
 interface TodoRadioProps {
+    todoId: string;
     priority: Priority;
+    name?: string;
+    mark?: boolean;
 }
 
-function TodoRadioButton({priority}: TodoRadioProps) {
+interface SetTodoStatusVariables {
+    todoId: string;
+    status: boolean;
+}
+
+function TodoRadioButton({
+    todoId,
+    priority,
+    mark = false,
+    name,
+}: TodoRadioProps) {
+    const {mutate} = useMutation({
+        mutationFn: async ({todoId, status}: SetTodoStatusVariables) => await setTodoStatus(todoId, status),
+    });
+    const [checked, setCheck] = useState<boolean>(mark);
+
+    useEffect(() => {
+        setCheck(mark);
+    }, [mark]);
+
     const borderColorMap: Record<Priority, string> = {
         1: "border-radio-p1-p",
         2: "border-radio-p2-p",
@@ -22,9 +48,23 @@ function TodoRadioButton({priority}: TodoRadioProps) {
     const bgColor = bgColorMap[priority];
 
     return (
-        <label className="flex items-center justify-center">
-            <input className="hidden" type="radio"/>
-            <span className={`w-8 h-8 border-4 ${borderColor} ${bgColor} rounded-full inline-block relative cursor-pointer`}></span>
+        <label className={`group flex items-center justify-center ${checked ? "cursor-not-allowed" : "cursor-pointer"}`}>
+            <input
+                className="peer sr-only"
+                type="checkbox"
+                name={name}
+                disabled={checked}
+                onChange={(e) => {
+                    mutate({todoId, status: e.target.checked});
+                    setCheck(e.target.checked);
+                }}
+                checked={checked}
+            />
+            <span className={`w-8 h-8 border-4 ${borderColor} ${bgColor} rounded-full inline-block relative group-hover:[&>span]:opacity-100 peer-checked:[&>span]:opacity-100 ${checked ? "opacity-60" : ""}`}>
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150">
+                    <span className="mb-0.5 h-3 w-1.5 rotate-45 border-b-2 border-r-2 border-white"></span>
+                </span>
+            </span>
         </label>
     );
 }

@@ -5,12 +5,11 @@ from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 
-from routers.todos.models import TodoModel
 from routers.todos.repo import fetch_active_todos, fetch_completed_todos, set_todo_title, set_todo_active_status, delete_todo
 from routers.todos.service import add_new_todo
 from data.core import get_db
 from utils.const import RATE_LIMIT
-from utils.pydantic_cm import UserModel
+from utils.pydantic_cm import UserModel, TodoModel
 from utils.response_model import ResponseModel, ResponseCode
 from utils.security.rate_limiting import limiter
 from utils.security.tokens import get_current_user

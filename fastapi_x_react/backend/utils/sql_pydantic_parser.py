@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from data.schemas import User, PendingUser, Todo
 from utils.pydantic_cm import UserModel, PendingUserModel, TodoModel
 
@@ -60,17 +62,15 @@ def todo_2_p(todo: Todo) -> TodoModel:
         priority=todo.priority,
         isActive=todo.isActive,
         dueDate=todo.dueDate,
-        createdAt=todo.createdAt,
-        userId=todo.userId
     )
 
-def todo_2_s(todo: TodoModel) -> Todo:
+def todo_2_s(user_id: str, created_at: datetime, todo: TodoModel) -> Todo:
     return Todo(
         id=todo.id,
         title=todo.title,
         priority=todo.priority,
         isActive=todo.isActive,
         dueDate=todo.dueDate,
-        createdAt=todo.createdAt,
-        userId=todo.userId
+        createdAt=created_at,
+        userId=user_id
     )

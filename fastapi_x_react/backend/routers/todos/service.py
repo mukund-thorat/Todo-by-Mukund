@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from data.schemas import Todo
-from routers.todos.models import TodoModel
 from routers.todos.repo import insert_todo
+from utils.pydantic_cm import TodoModel
 
 
 async def add_new_todo(user_id: uuid.UUID, todo_model: TodoModel, db: AsyncSession) -> Todo:

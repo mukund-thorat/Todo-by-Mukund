@@ -17,3 +17,15 @@ export async function getActiveTodos(): Promise<todoModel[]> {
 
     return data.map((item) => todoObject.parse(item));
 }
+
+export async function setTodoStatus(todoId: string, status: boolean){
+    const response = await fetchWithAuth(`http://localhost:8000/todos/update_status/${todoId}?status=${status}`, {
+        method: "PUT",
+    })
+
+    if (!response.ok) {
+        throw new Error(response.statusText);
+    }
+
+    return await response.json();
+}
