@@ -7,6 +7,15 @@
     --color-secondary: #ECB893;
     --color-tertiary: #CB824D;
     --color-quaternary: #774522;
+
+    --color-radio-p1-p: #D92626;
+    --color-radio-p1-s: #F0A8A8;
+    --color-radio-p2-p: #D99D26;
+    --color-radio-p2-s: #F0D8A8;
+    --color-radio-p3-p: #2682D9;
+    --color-radio-p3-s: #A8CDF0;
+    --color-radio-p4-p: #7F7F7F;
+    --color-radio-p4-s: #CCCCCC;
 }
 
 body {

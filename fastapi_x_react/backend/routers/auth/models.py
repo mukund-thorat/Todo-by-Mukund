@@ -21,3 +21,10 @@ class LoginOTPVerificationModel(BaseModel):
     email: EmailStr
     otp: str
     avatar: str
+
+class UserResponseModel(BaseModel):
+    id: str
+    firstName: str
+    lastName: str
+    email: EmailStr
+    avatar: str
