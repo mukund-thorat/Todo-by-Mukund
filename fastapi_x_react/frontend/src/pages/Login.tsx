@@ -19,7 +19,7 @@ function LoginPage(){
     const {mutate} = useMutation({
         mutationFn: async (data: LoginFormData) => loginUser(data),
         onSuccess: (data) => {
-            sessionStorage.setItem("access_token", data['access_token']);
+            localStorage.setItem("access_token", data["access_token"]);
             window.location.href = "/dashboard";
         }
     });

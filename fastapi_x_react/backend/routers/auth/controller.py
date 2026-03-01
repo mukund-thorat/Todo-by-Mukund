@@ -85,4 +85,5 @@ async def token_login(request: Request, response: Response, user: UserModel = De
 @router.get("/me", response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
 async def get_current_user_info(request: Request, user: UserModel = Depends(get_current_user)) -> dict:
+    print(request.cookies)
     return ResponseModel(code=ResponseCode.ACK, message=str(user.id))

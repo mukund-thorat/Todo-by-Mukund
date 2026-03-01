@@ -1,4 +1,5 @@
 import uuid
+import os
 from datetime import timedelta
 from fastapi import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,13 +51,15 @@ async def tokens_generator(response: Response, user: UserModel, db: AsyncSession
     access_token = create_access_token(email=user.email, user_id=user_id, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
 
     await set_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
+    cookie_secure = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+    cookie_samesite = os.getenv("COOKIE_SAMESITE", "lax").lower()
 
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
-        samesite="strict",
+        secure=cookie_secure,
+        samesite=cookie_samesite,
         max_age=7 * 24 * 60 * 60
     )
 
