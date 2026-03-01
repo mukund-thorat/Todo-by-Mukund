@@ -8,7 +8,7 @@ export async function refreshAccessToken(): Promise<string> {
 
     if (!response.ok) {
         localStorage.removeItem("access_token");
-        throw new Error("Unable to refresh access token");
+        window.location.href = "/login";
     }
 
     const data: tokenModel = await response.json();

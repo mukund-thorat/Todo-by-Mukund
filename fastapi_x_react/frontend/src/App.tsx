@@ -4,7 +4,7 @@ import SignUpPage from "./pages/SignUp.tsx";
 import LoginPage from "./pages/Login.tsx";
 import Avatar from "./pages/Avatar.tsx";
 import OTPPage from "./pages/OTP.tsx";
-import DashboardPage from "./pages/Dashboard.tsx";
+import DashboardPage from "./pages/dashboard/Dashboard.tsx";
 import OAuthCallback from "./pages/OAuthCallback.tsx";
 
 function App() {

@@ -1,14 +1,23 @@
-import type {ReactNode} from "react";
+import {type ReactNode, useEffect} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {getMe} from "../api/get-me.ts";
 import {Navigate} from "react-router-dom";
+import {clearUser, setUser} from "../store/userSlice.ts";
+import {useAppDispatch} from "../store/hooks.ts";
 
 function ProtectedRoute({children}: {children: ReactNode}) {
-    const { isLoading, isError } = useQuery({
+    const dispatch = useAppDispatch();
+    const { data, isLoading, isError } = useQuery({
         queryKey: ["me"],
         queryFn: getMe,
         retry: false,
+        staleTime: Infinity
     })
+
+    useEffect(() => {
+        if (data) dispatch(setUser(data));
+        if (isError) dispatch(clearUser());
+    }, [data, isError, dispatch])
 
     if (isLoading) return <div>Loading...</div>
     if (isError) {
@@ -17,7 +26,6 @@ function ProtectedRoute({children}: {children: ReactNode}) {
     }
 
     return <>{children}</>;
-
 }
 
 export default ProtectedRoute;

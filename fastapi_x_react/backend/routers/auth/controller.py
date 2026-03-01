@@ -10,7 +10,7 @@ from starlette.status import HTTP_201_CREATED, HTTP_202_ACCEPTED, HTTP_200_OK
 from data.core import get_db
 from data.schemas import AuthServiceProvider
 from routers.auth.repo_user import set_user_timestamp
-from routers.auth.models import UserCredentials, SignUpModel, LoginOTPVerificationModel, Token
+from routers.auth.models import UserCredentials, SignUpModel, LoginOTPVerificationModel, Token, UserResponseModel
 from routers.auth.service import authenticate_user, store_pend_user, login_verification, tokens_generator
 from utils.const import RATE_LIMIT
 from utils.errors import ValidationError
@@ -82,8 +82,13 @@ async def token_login(request: Request, response: Response, user: UserModel = De
     await set_user_timestamp(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
     return await tokens_generator(response, user, db)
 
-@router.get("/me", response_model=ResponseModel)
+@router.get("/me", response_model=UserResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def get_current_user_info(request: Request, user: UserModel = Depends(get_current_user)) -> dict:
-    print(request.cookies)
-    return ResponseModel(code=ResponseCode.ACK, message=str(user.id))
+async def get_current_user_info(request: Request, user: UserModel = Depends(get_current_user)) -> UserResponseModel:
+    return UserResponseModel(
+        id=str(user.id),
+        email=user.email,
+        firstName=user.firstName,
+        lastName=user.lastName,
+        avatar=user.avatar,
+    )

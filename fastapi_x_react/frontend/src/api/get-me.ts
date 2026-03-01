@@ -1,6 +1,7 @@
 import {refreshAccessToken} from "./refresh-token.ts";
+import {userObject, type userModel} from "../entities/user.ts";
 
-async function fetchMe(token: string) {
+export async function fetchMe(token: string) {
     return fetch("http://localhost:8000/auth/me", {
         method: "GET",
         headers: {
@@ -10,7 +11,7 @@ async function fetchMe(token: string) {
     });
 }
 
-export async function getMe() {
+export async function getMe(): Promise<userModel> {
     let token = localStorage.getItem("access_token");
     if (!token) {
         token = await refreshAccessToken();
@@ -27,5 +28,6 @@ export async function getMe() {
         throw new Error(response.statusText);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return userObject.parse(data);
 }
