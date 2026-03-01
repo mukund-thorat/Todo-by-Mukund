@@ -1,32 +1,38 @@
 import Todo from "../../components/Todo.tsx";
-import {useEffect} from "react";
-import {useAppDispatch, useAppSelector} from "../../store/hooks.ts";
-import {fetchActiveTodos} from "../../store/todoSlice.ts";
+import {useQuery} from "@tanstack/react-query";
+import {getActiveTodos} from "../../api/active-todos.ts";
+
 
 function Todos(){
-    const dispatch = useAppDispatch();
-    const todos = useAppSelector((state) => state.todos.items);
-    const status = useAppSelector((state) => state.todos.status);
-    const error = useAppSelector((state) => state.todos.error);
+    const {data, isError, isLoading} = useQuery({
+        queryKey: ["todos"],
+        queryFn: getActiveTodos,
+        select: (todos) => [...todos].sort((a, b) => {
+            const priorityA = Math.min(4, Math.max(1, a.priority));
+            const priorityB = Math.min(4, Math.max(1, b.priority));
 
-    useEffect(() => {
-        if (status === "idle") {
-            dispatch(fetchActiveTodos());
-        }
-    }, [status, dispatch]);
+            if (priorityA !== priorityB) return priorityA - priorityB;
 
-    if (status === "loading") {
-        return <div className="mt-25 text-center">Loading todos...</div>;
-    }
+            const dueA = new Date(a.dueDate).getTime();
+            const dueB = new Date(b.dueDate).getTime();
+            return dueA - dueB;
+        }),
+        staleTime: Infinity,
+        refetchOnWindowFocus: false
+    });
 
-    if (status === "failed") {
-        return <div className="mt-25 text-center text-red-500">{error}</div>;
-    }
+    if (isLoading)
+        return <div>Loading...</div>;
+
+    if (isError)
+        return <div>Something went wrong.</div>;
 
     return (
         <div className="mt-25 flex flex-col items-center justify-center">
-            {todos.map((todo, index) => (
+            {data?.map((todo, index) => (
                 <Todo
+                    id={todo.id}
+                    checked={todo.isActive}
                     key={`${todo.title}-${index}`}
                     priority={Math.min(4, Math.max(1, Math.round(todo.priority))) as 1 | 2 | 3 | 4}
                     dueDate={todo.dueDate.toLocaleDateString()}

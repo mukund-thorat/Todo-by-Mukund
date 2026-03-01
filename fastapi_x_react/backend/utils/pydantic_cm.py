@@ -36,5 +36,3 @@ class TodoModel(BaseModel):
     priority: int
     isActive: bool
     dueDate: datetime
-    createdAt: datetime
-    userId: uuid.UUID
