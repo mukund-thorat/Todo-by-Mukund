@@ -69,3 +69,19 @@ export async function remTodo(todoId: string){
 
     return await response.json();
 }
+
+export async function createTodo(todo: Omit<todoModel, "id">){
+    const response = await fetchWithAuth("http://localhost:8000/todos/create", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(todo)
+    })
+
+    if (!response.ok) {
+        throw new Error(response.statusText);
+    }
+
+    return await response.json();
+}
