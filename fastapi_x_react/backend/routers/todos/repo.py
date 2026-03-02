@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from data.schemas import Todo
+from routers.todos.models import TodoSetModel
 from utils.errors import DatabaseError, NotFoundError, ValidationError
 from utils.sv_logger import sv_logger
 
@@ -151,6 +152,27 @@ async def set_todo_active_status(todo_id: str, status: bool, db: AsyncSession):
         )
         raise DatabaseError(details={"table": "todos", "todo_id": todo_id}) from se
 
+async def set_todo(todo: TodoSetModel, db: AsyncSession):
+    try:
+        await db.execute(
+            update(Todo)
+            .where(Todo.id == todo.id)
+            .values(title=todo.title, priority=todo.priority, isActive=todo.isActive, dueDate=todo.dueDate)
+            .returning(Todo.id)
+        )
+        await db.commit()
+        sv_logger.info(
+            "Bulk update of todo completed successfully",
+            extra={"operation": "bulk_update", "entity": "todos"},
+        )
+    except SQLAlchemyError as se:
+        await db.rollback()
+        sv_logger.error(
+            "Failed to perform bulk update of todos",
+            extra={"operation": "bulk_update", "entity": "todos"},
+            exc_info=True,
+        )
+        raise DatabaseError(details={"table": "todos"}) from se
 
 async def delete_todo(todo_id: uuid.UUID, db: AsyncSession):
     try:
