@@ -4,7 +4,7 @@ import {getActiveTodos} from "../../api/active-todos.ts";
 
 
 function Todos(){
-    const {data, isError, isLoading} = useQuery({
+    const {data, isError, isLoading, refetch} = useQuery({
         queryKey: ["todos"],
         queryFn: getActiveTodos,
         select: (todos) => [...todos].sort((a, b) => {
@@ -35,8 +35,9 @@ function Todos(){
                     checked={todo.isActive}
                     key={`${todo.title}-${index}`}
                     priority={Math.min(4, Math.max(1, Math.round(todo.priority))) as 1 | 2 | 3 | 4}
-                    dueDate={todo.dueDate.toLocaleDateString()}
+                    dueDate={todo.dueDate}
                     title={todo.title}
+                    refetch={refetch}
                 />
             ))}
         </div>

@@ -5,7 +5,9 @@ from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED
 
-from routers.todos.repo import fetch_active_todos, fetch_completed_todos, set_todo_title, set_todo_active_status, delete_todo
+from routers.todos.models import TodoCreateModel, TodoSetModel
+from routers.todos.repo import fetch_active_todos, fetch_completed_todos, set_todo_title, set_todo_active_status, \
+    delete_todo, set_todo
 from routers.todos.service import add_new_todo
 from data.core import get_db
 from utils.const import RATE_LIMIT
@@ -31,7 +33,7 @@ async def get_inactive_todos(request: Request, limit: int = 15, skip: int = 0, d
 
 @router.post("/create", response_model=ResponseModel, status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def create_todo(request: Request, model: TodoModel, db: AsyncSession = Depends(get_db), user: UserModel = Depends(get_current_user)) -> ResponseModel:
+async def create_todo(request: Request, model: TodoCreateModel, db: AsyncSession = Depends(get_db), user: UserModel = Depends(get_current_user)) -> ResponseModel:
     await add_new_todo(user.id, model, db)
     return ResponseModel(code=ResponseCode.CREATED, message="Created Todo Item successfully")
 
@@ -46,6 +48,12 @@ async def update_title(request: Request, todo_id: str, updated_title: str, db: A
 async def update_status(request: Request, todo_id: str, status: bool, db: AsyncSession = Depends(get_db), _: UserModel = Depends(get_current_user)) -> ResponseModel:
     await set_todo_active_status(todo_id=todo_id, status=status, db=db)
     return ResponseModel(code=ResponseCode.UPDATED, message="Updated status successfully", details={"status": status})
+
+@router.put("/bulk_update")
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def bulk_update(request: Request, todo: TodoSetModel, db: AsyncSession = Depends(get_db), _: UserModel = Depends(get_current_user)):
+    await set_todo(todo, db)
+    return ResponseModel(code=ResponseCode.UPDATED, message="Updated status successfully", details={"todoId": todo.id})
 
 @router.delete("/remove/{todo_id}", response_model=ResponseModel, status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
