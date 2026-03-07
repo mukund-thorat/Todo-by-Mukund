@@ -1,0 +1,7 @@
+.git
+.gitignore
+tests/
+*__pycache__
+.venv
+.example.env
+.idea

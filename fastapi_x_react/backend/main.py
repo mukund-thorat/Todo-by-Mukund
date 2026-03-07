@@ -58,7 +58,6 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 app.include_router(router=todo_router)
 app.include_router(router=auth_router)
 app.include_router(router=user_router)

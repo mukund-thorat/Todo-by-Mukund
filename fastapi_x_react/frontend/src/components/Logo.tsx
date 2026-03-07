@@ -1,7 +1,7 @@
 function Logo() {
     return (
         <img
-            src={"src/assets/images/logo.svg"}
+            src={"/images/logo.svg"}
             alt="Logo"
         />
     );

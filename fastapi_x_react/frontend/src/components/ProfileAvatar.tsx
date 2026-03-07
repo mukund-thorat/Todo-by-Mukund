@@ -1,7 +1,9 @@
 import {useEffect, useRef, useState} from "react";
-import {useMutation} from "@tanstack/react-query";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {logoutUser} from "../api/logout-user.ts";
 import {useNavigate} from "react-router-dom";
+import {useAppDispatch} from "../store/hooks.ts";
+import {clearUser} from "../store/userSlice.ts";
 
 interface ProfileAvatarProps {
     name: string;
@@ -9,6 +11,8 @@ interface ProfileAvatarProps {
 
 function ProfileAvatar({name}: ProfileAvatarProps) {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const dispatch = useAppDispatch();
 
     const logoutMutation = useMutation({
         mutationFn: logoutUser,
@@ -33,7 +37,7 @@ function ProfileAvatar({name}: ProfileAvatarProps) {
         <div className="relative" ref={containerRef}>
             <img
                 className={`rounded-full border-4 hover:border-6 border-quaternary w-20`}
-                src={`src/assets/images/avatars/${name}.jpg`}
+                src={`/images/avatars/${name}.jpg`}
                 alt={name}
                 onContextMenu={(e) => {
                     e.preventDefault();
@@ -49,9 +53,14 @@ function ProfileAvatar({name}: ProfileAvatarProps) {
                                 className="whitespace-nowrap p-3 bg-[#D9C9BF] rounded-md w-full cursor-pointer font-medium">Change password</button>
                             <button
                                 onClick={async () => {
-                                    await logoutMutation.mutateAsync()
-                                    localStorage.removeItem("access_token")
-                                    navigate("/login")
+                                    try {
+                                        await logoutMutation.mutateAsync();
+                                    } finally {
+                                        localStorage.removeItem("access_token");
+                                        dispatch(clearUser());
+                                        queryClient.removeQueries({ queryKey: ["me"] });
+                                        navigate("/login", { replace: true });
+                                    }
                                 }}
                                 className="whitespace-nowrap p-3 bg-[#D9C9BF] rounded-md w-full cursor-pointer font-medium">Logout</button>
                         </div>

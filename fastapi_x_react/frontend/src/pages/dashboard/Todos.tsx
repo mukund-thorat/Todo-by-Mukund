@@ -98,7 +98,7 @@ function CreatePopup({isOpen, setIsOpen, refetch}: CreatePopupProps) {
                         />
                     </div>
                     <div className="flex items-center gap-2 text-[#404040] p-2 rounded-md border border-quaternary">
-                        <img width="20px" src="src/assets/images/priority.svg" alt="priority"/>
+                        <img width="20px" src="/images/priority.svg" alt="priority"/>
                         <select
                             className="bg-transparent outline-0"
                             value={priority}
