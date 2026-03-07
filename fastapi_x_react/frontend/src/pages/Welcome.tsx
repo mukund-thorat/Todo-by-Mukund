@@ -8,7 +8,7 @@ function WelcomePage(){
                 <div className="mb-20">
                     <div className="flex items-center justify-center">
                         <h1 className="text-5xl italic font-medium">"Todo by</h1>
-                        <img className="ml-3 mr-3" src="src/assets/images/logo.svg" alt="logo"/>
+                        <img className="ml-3 mr-3" src="/images/logo.svg" alt="logo"/>
                         <h1 className="text-5xl italic font-medium">is</h1>
                     </div>
                     <h1 className="text-5xl italic font-medium">The World's best todo list app."</h1>

@@ -22,6 +22,7 @@ interface EditTodoProps {
     priority: Priority;
     checked: boolean;
     cancelCallback: () => void;
+    onSuccessCallback: () => void;
 }
 
 function toInputDate(date: Date) {
@@ -31,7 +32,7 @@ function toInputDate(date: Date) {
     return `${year}-${month}-${day}`;
 }
 
-function EditableTodo({ id, title, dueDate, checked, priority, cancelCallback }: EditTodoProps) {
+function EditableTodo({ id, title, dueDate, checked, priority, cancelCallback, onSuccessCallback }: EditTodoProps) {
     const queryClient = useQueryClient()
 
     const [input, setInput] = useState<string>(title);
@@ -40,6 +41,7 @@ function EditableTodo({ id, title, dueDate, checked, priority, cancelCallback }:
 
     const {mutateAsync} = useMutation({
         mutationFn: async (todo: todoModel) => setTodo(todo),
+        onSuccess: () => onSuccessCallback(),
     });
 
     return (
@@ -58,7 +60,7 @@ function EditableTodo({ id, title, dueDate, checked, priority, cancelCallback }:
                         />
                     </div>
                     <div className="flex items-center gap-2 text-[#404040] p-2 rounded-md border border-quaternary">
-                        <img width="20px" src="src/assets/images/priority.svg" alt="priority"/>
+                        <img width="20px" src="/images/priority.svg" alt="priority"/>
                         <select
                             className="bg-transparent outline-0"
                             value={priorityInput}
@@ -114,6 +116,7 @@ export default function Todo({ id, title, checked, dueDate, priority = 4 }: Todo
             checked={checked}
             dueDate={dueDate}
             cancelCallback={() => setEditable(false)}
+            onSuccessCallback={async () => await queryClient.invalidateQueries({queryKey: ['todos']})}
         />
     ) : (
         <div className="group flex justify-between items-center gap-6 border-b border-quaternary px-4 py-6 w-150">
@@ -122,7 +125,7 @@ export default function Todo({ id, title, checked, dueDate, priority = 4 }: Todo
                 <div className="flex flex-col gap-2 items-start">
                     <h2 className="text-xl font-semibold">{title}</h2>
                     <div className="flex items-center gap-2 text-[#404040]">
-                        <img width="24px" src="src/assets/images/calendar.svg" alt="calendar"/>
+                        <img width="24px" src="/images/calendar.svg" alt="calendar"/>
                         <p>{formattedDueDate}</p>
                     </div>
                 </div>
@@ -132,13 +135,13 @@ export default function Todo({ id, title, checked, dueDate, priority = 4 }: Todo
                     onClick={async () => {
                         setEditable(true);
                     }}
-                    className="p-2 hover:bg-secondary rounded-lg" src="src/assets/images/edit.svg" alt="edit"/>
+                    className="p-2 hover:bg-secondary rounded-lg" src="/images/edit.svg" alt="edit"/>
                 <img
                     onClick={async () => {
                         await remMutation.mutateAsync(id);
                         await queryClient.invalidateQueries({queryKey: ['todos']})
                     }}
-                    className="p-2 hover:bg-secondary rounded-lg" src="src/assets/images/trash.svg" alt="remove"/>
+                    className="p-2 hover:bg-secondary rounded-lg" src="/images/trash.svg" alt="remove"/>
             </div>
         </div>
     );

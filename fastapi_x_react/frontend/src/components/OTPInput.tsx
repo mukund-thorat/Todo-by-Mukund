@@ -1,4 +1,4 @@
-import '../assets/css/otp.css'
+import '../css/otp.css'
 import {type ClipboardEvent, useRef, useState} from "react";
 
 function OTPInput({otpCallback} : {otpCallback: (otp: string) => void}) {

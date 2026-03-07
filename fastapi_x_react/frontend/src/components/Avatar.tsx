@@ -10,7 +10,7 @@ function Avatar({name, onClick, selected}: AvatarProps) {
     return (
         <img
             className={`rounded-full border-6 hover:border-10 border-quaternary ${isSelected ? "w-60 border-9": "w-50"}`}
-            src={`src/assets/images/avatars/${name}.jpg`}
+            src={`/images/avatars/${name}.jpg`}
             alt={name}
             onClick={() => onClick()}
         />
